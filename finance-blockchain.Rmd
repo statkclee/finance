@@ -1,0 +1,140 @@
+---
+layout: page
+title: xwMOOC 금융(Finance)
+subtitle: 블록체인(Blockchain)
+output:
+  html_document: 
+    toc: yes
+    highlight: tango
+    code_folding: hide
+    css: css/swc.css
+  pdf_document:
+    latex_engine: xelatex
+mainfont: NanumGothic
+---
+ 
+``` {r, include=FALSE}
+source("tools/chunk-options.R")
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+```
+
+## 1. 블록체인 [^r-pkg-rockchain] [^wiki-blockchain] {#blockchain-technology}
+
+[^r-pkg-rockchain]: [Matthew Leonawicz, Introduction to rockchain, 2017-12-04](https://leonawicz.github.io/rockchain/articles/rockchain.html)
+
+[^wiki-blockchain]: [위키 백과 - 블록체인(Blockchain)](https://ko.wikipedia.org/wiki/%EB%B8%94%EB%A1%9D%EC%B2%B4%EC%9D%B8)
+
+비트코인을 블록체인과 동일시하는 경향이 있지만, 관련이 있지만 블록체인을 구현한 한 사례로 암호화폐 비트코인을 바라보는 관점이 타당해 보인다.
+결제시스템 예를 들어 페이팔과 같은 시스템에서 필요로 하는 중앙 집중형 데이터베이스를 가지고 있을 필요가 없다는 점이 기존 방식과 큰 차이점으로 
+새로운 혁신의 원동력으로 받아들여지고 있다.
+
+블록체인(block chain)은 관리 대상 데이터를 '블록'이라고 하는 소규모 데이터들이 P2P방식을 기반으로 
+생성된 체인 형태의 연결고리 기반 분산 데이터 저장환경에 저장되어 누구도 임의로 수정될 수 없고 누구나 변경의 결과를 열람할 수 있는 
+분산컴퓨팅 기술 기반의 데이터 위변조 방지 기술이다. 
+이는 근본적으로 분산 데이터 저장기술의 한 형태로, 
+지속적으로 변경되는 데이터를 모든 참여 노드에 기록한 변경 리스트로서 분산 노드의 운영자에 의한 임의 조작이 불가능하도록 고안되었다. 
+잘 알려진 블록체인의 응용사례는 암호화폐의 거래과정을 기록하는 탈중앙화된 전자장부로서 **비트코인(Bitcoin)**이 있다. 
+비트코인을 비롯한 대부분의 암호화폐들이 블록체인 기술 형태에 기반하고 있다.
+
+<iframe src="https://embed.ted.com/talks/lang/ko/don_tapscott_how_the_blockchain_is_changing_money_and_business" width="300" height="180" frameborder="0" scrolling="no" allowfullscreen></iframe>
+
+## 2. 암호화폐 시가 총액 [^datascience-plus-crytocurrency] {#crytocurrency-market-cap}
+
+[^datascience-plus-crytocurrency]: [DataScience+, Analysing Cryptocurrency Market in R, October 26, 2017](https://datascienceplus.com/analysing-cryptocurrency-market-in-r/)
+
+너무나도 많은 암호화폐가 존재하여 암호화폐 시가총액을 통해 가장 인기있는 암호화폐를 살펴보자.
+`coinmarketcapr` 팩키지는 [Cryptocurrency Market Capitalizations](https://coinmarketcap.com/) API에서 제공하는 데이터를 가져와서 
+이를 시가 총액을 보여주는데 많이 사용되는 `treemap`, `d3tree2` 팩키지를 활용하여 시각화한다.
+
+한가지 흥미로운 사실은 비트코인과 이더리움 2017년 10월과 비교하여 여전히 강세를 보이고 있고,
+1천억($ 100 billion) 달러였는데 `r Sys.Date()` 기준 3천5백억($ 349 billion) 달러로 불과 몇개월사이 3배이상 뛰었다는 점이다.
+즉, 대략 100조($ 100 billion)에서 대략 349조($ 349 billion)원이 되었다.
+
+``` {r crytocurrency-market-cap-setup}
+# 0. 환경설정 --------
+# library(rockchain) # devtools::install_github("leonawicz/rockchain")
+library(tidyverse)
+# devtools::install_github("amrrs/coinmarketcapr")
+library(coinmarketcapr)
+library(DT)
+library(lubridate)
+library(treemap)
+library(d3treeR)
+library(extrafont)
+loadfonts()
+library(coindeskr)
+library(dygraphs)
+
+# 1. 데이터 가져오기 --------
+
+market_today <- get_marketcap_ticker_all() %>% 
+    tbl_df %>% 
+    mutate(last_updated = as.POSIXct(as.integer(last_updated), origin="1970-01-01"))
+
+# 2. 암호화폐 시장규모 --------
+## 2.1. 표
+
+market_today %>% 
+    datatable() %>% 
+      formatCurrency(c("rank", "price_usd", "price_btc", "X24h_volume_usd", 
+                       "market_cap_usd", "available_supply", "total_supply", "max_supply"),
+                     currency="", digits=0)
+
+## 2.2. 시각화
+
+market_today_df <- market_today %>% 
+    select(id, market_cap_usd, price_usd) %>% 
+    filter(!is.na(id) & !is.na(market_cap_usd)) %>% 
+    mutate(market_cap_usd = as.numeric(market_cap_usd),
+           price_usd = as.numeric(price_usd),
+           formatted_market_cap = str_c(id, '\n', '$', format(market_cap_usd, big.mark = ',', scientific = FALSE, trim = TRUE)))
+
+
+market_today_treemap <- treemap(market_today_df, 
+        index = "formatted_market_cap", 
+        vSize = "market_cap_usd", 
+        vColor = "market_cap_usd",
+        title = "암호화폐 시가총액 \n (Cryptocurrency Market Cap)", 
+        fontsize.labels=c(12, 8), 
+        draw = TRUE,
+        type = "value", 
+        fontfamily.title = "NanumGothic",
+        format.legend = list(scientific = FALSE, big.mark = ","),
+        title.legend="")
+
+# d3tree2(market_today_treemap, rootname = "암호화폐")
+```
+
+## 3. 비트코인 시세 변화 [^datascience-plus-bitcoin] {#crytocurrency-bitcoin}
+
+[^datascience-plus-bitcoin]: [DataScience+, Building a Daily Bitcoin Price Tracker with Coindeskr and Shiny in R, January 10, 2018](https://datascienceplus.com/building-a-daily-bitcoin-price-tracker-with-coindeskr-and-shiny-in-r/)
+
+[CoinDesk Bitcoin Price Index API](https://www.coindesk.com/api/)를 통해서 제공되는 실시간 비트코인 가격 데이터를 바탕으로 2011-01-01 부터 `r Sys.Date()`까지 비트코인 
+가격을 변화를 살펴보자. 이를 위해서 [coindeskr](https://cran.r-project.org/web/packages/coindeskr/index.html) 팩키지에서 데이터를 긁어오고 이를
+`dygraph` 팩키지로 시각화한다.
+
+``` {r crytocurrency-bitcoin}
+# 1. 데이터 가져오기 --------
+
+bitcoin_krw_df <- get_historic_price(currency = "KRW", start="2011-01-01", end=Sys.Date())
+
+bitcoin_krw_df$Price <- round(bitcoin_krw_df$Price,0)
+
+# 2. 비트코인 가격변화 시각화 --------
+
+dygraph(data = bitcoin_krw_df, main = paste0("비트코인 가격 동향: 2011-01-01 ... ", Sys.Date())) %>% 
+    dyHighlight(highlightCircleSize = 5, 
+                highlightSeriesBackgroundAlpha = 0.2,
+                hideOnMouseOut = FALSE, highlightSeriesOpts = list(strokeWidth = 3)) %>%
+    dyRangeSelector(height = 50, dateWindow = c(paste(Sys.Date()-90), paste(Sys.Date()))) %>% 
+    dyLegend(width = 500, show = "onmouseover", hideOnMouseOut = FALSE) %>% 
+    dyAxis("y",
+           label = "비트코인가격(원)",
+           axisLabelFormatter = 'function(d){return d.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ",");}',
+           axisLabelFontSize = 10,
+           axisLabelWidth = 70,
+           valueFormatter = 'function(d){return d.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ",");}'
+    ) %>% 
+    dyCSS("blockchain.css")
+```
+
