@@ -31,7 +31,7 @@ title: 금융(Finance)
     - [금융데이터 가져오기](stat-fe-import.html)
     - [시계열 데이터 다루기](stat-time-series-basics.html)    
 - **금융/시계열 데이터 다루기: Tidyverse 시계열 버전**
-    - [깔끔한 금융 시장 분석가(tidyquant)](stat-time-series-tidyquant.html)    
+    - [실업률 예측 - tidyquant](ts-unemployment-tidyquant.html)    
 - **응용**
     - [블록체인(Block Chain)](finance-blockchain.html)
 

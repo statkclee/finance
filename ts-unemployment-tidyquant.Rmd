@@ -1,0 +1,160 @@
+---
+layout: page
+title: 데이터 과학 -- 금융(Finance)
+subtitle: 실업률 예측 - tidyquant
+output:
+  html_document: 
+    toc: yes
+    toc_float: true
+    highlight: tango
+    code_folding: hide
+    number_sections: TRUE
+---
+
+
+```{r, include=FALSE}
+source("tools/chunk-options.R") 
+knitr::opts_chunk$set(echo=TRUE, message=FALSE, warning=FALSE)
+
+library(quantmod)
+library(Quandl)
+
+options("getSymbols.yahoo.warning"=FALSE)
+```
+
+# 실업률 [^mk-unemployment] {#unemployment-kim}
+
+[^mk-unemployment]: [매일경제 (2018.06.15), 김동연 "고용동향 충격적…업종·계층 맞춤형 대책 마련"](http://news.mk.co.kr/newsRead.php?no=378149&year=2018)
+
+2018-06-15 김동연 부총리 겸 기획재정부 정부가 8년 만에 최악 수준을 기록한 고용상황에 우려를 표하며 대책 마련에 총력을 기울이겠다고 밝혔다.
+실업률이 얼마나 심각한지 실업률 데이터를 바탕으로 향후 12개월(1년) 실업률 예측작업을 수행한다.
+
+# 실업률 데이터 {#unemployment-data}
+
+[FRED](https://fred.stlouisfed.org/series/LRUN64TTKRM156N) 웹사이트에서 
+대한민국 15-64세 경제활동인구 실업률 데이터를 tidyquant 팩키지 `tq_get()` 함수로 얻을 수 있다.
+단, 해당 실업률 데이터는 `LRUN64TTKRM156N`으로 특정한다.
+
+다운로드 받은 데이터가 제대로 다운로드 받았는지 확인하는 과정과 함께 시계열 데이터를 시각화하는 것이 좋은 시작점이다.
+즉, 시계열 특성이 반영되고 있지만, 실업률 저점이 2014년 이후 지속적으로 높아지고 있는 것은 긍정적으로 파악되지는 않고 있다.
+
+``` {r mk-unemployment-data}
+# 0. 환경설정 -----
+library(tidyquant)
+library(timetk)
+library(sweep)
+library(extrafont)
+library(forecast)
+loadfonts()
+
+# https://www.rstudio.com/resources/videos/the-future-of-time-series-and-financial-analysis-in-the-tidyverse/
+
+# 1. 데이터 -----
+unemp_tbl <- tq_get("LRUN64TTKRM156N", 
+                            get  = "economic.data", 
+                            from = "2000-01-01",
+                            to   = Sys.Date())
+unemp_tbl <- unemp_tbl %>% 
+  rename(실업률 = price,
+            연월 = date)
+
+
+# 2. 시각화 -----
+unemp_tbl %>%
+  ggplot(aes(x = 연월, y = 실업률)) +
+  geom_line(size = 1, color = palette_light()[[1]]) +
+  geom_smooth(method = "loess") +
+  labs(title = "대한민국 실업률: 월별", x = "", y = "실업률(%)") +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  theme_tq(base_family = "NanumGothic")
+```
+
+# 실업률 예측모형 [^ts-unemp-forecast-model] {#unemployment-forecasting-model}
+
+[^ts-unemp-forecast-model]: [Introduction to sweep](https://business-science.github.io/sweep/articles/SW00_Introduction_to_sweep.html)
+
+티블(`tibble`) 자료구조를 `ts` 자료구조로 변환시켜야 `forecast` 팩키지 예측함수를 사용이 가능하다.
+이를 위해서 `timetk` 팩키지 `tk_ts()` 함수를 사용한다. 
+자료형이 티블에서 `ts`로 변환되었기 때문에 `ets()` 모형을 데이터에 적합시킨다.
+`sweep` 팩키지는 `broom` 팩키지의 시계열 버전이라 `sw_augment()` 함수를 통해 잔차분석을 수월히 진행할 수 있다.
+그외 `sw_tidy()`, `sw_glance()` 함수도 `broom` 팩키지 `tidy()`, `glance()`와 대응된다.
+
+``` {r unemployment-forecasting-model-ets}
+# 3. 예측모형 -----
+## 3.1. ts 객체 변환
+unemp_ts <- timetk::tk_ts(unemp_tbl, start = 2000, freq = 12, silent = TRUE)
+unemp_ts
+
+## 3.2. 시계열 모형 적합
+fit_ets <- unemp_ts %>%
+  ets()
+  # forecast::auto.arima(stepwise=TRUE, approximation=FALSE, max.order=2)
+
+# sw_tidy(fit_ets)
+# sw_glance(fit_ets)
+```
+
+시계열 예측모형은 수도없이 많지만, 이번에는 `ets()` 모형을 주예측모형으로 선정하여 시계열을 예측한다.
+또한, `sw_augment()` 함수를 통해 시계열 예측치를 후속 분석을 위해 사용할 수 있도록 데이터프레임으로 저장시킨다.
+
+``` {r unemployment-forecasting-model-ets-fit}
+augment_fit_ets <- sw_augment(fit_ets)
+augment_fit_ets
+
+## 3.3. 잔차 시각화
+augment_fit_ets %>%
+  ggplot(aes(x = index, y = .resid)) +
+  geom_hline(yintercept = 0, color = "grey40") +
+  geom_point(color = palette_light()[[1]], alpha = 0.5) +
+  geom_smooth(method = "loess") +
+  scale_x_yearmon(n = 10) +
+  labs(title = "대한민국 실업률: ETS 잔차", x = "", y = "실업률(%)") +
+  theme_tq(base_family = "NanumGothic")
+```
+
+`sw_tidy_decomp()` 함수로 시계열 분해시켜 각 구성요소별로 시계열 신호를 시각화할 수 있다.
+
+``` {r unemployment-forecasting-model-ets-decomp}
+## 3.4. 실업률 시계열 분해
+
+decomp_fit_ets <- sw_tidy_decomp(fit_ets)
+decomp_fit_ets 
+
+decomp_fit_ets %>%
+  gather(key = key, value = value, -index) %>%
+  mutate(key = forcats::as_factor(key)) %>%
+  ggplot(aes(x = index, y = value, group = key)) +
+  geom_line(color = palette_light()[[2]]) +
+  geom_ma(ma_fun = SMA, n = 12, size = 1) +
+  facet_wrap(~ key, scales = "free_y", nrow = 3) +
+  scale_x_yearmon(n = 10) +
+  labs(title = "대한민국 실업률: ETS 분해", x = "", y = "") +
+  theme_tq(base_family = "NanumGothic") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+`forecast()` 함수와 기간을 `h=12`로 지정하면 앞서 `ets` 모형을 바탕으로 12개월치 예측값을 추정하여 준다.
+이를 시각화하여 보면 특단의 조처가 없다면 실업률은 지속적으로 치솟을 것으로 예측되고 있다.
+
+``` {r unemployment-forecasting-model-ets-forecast}
+# 3.5. 실업률 예측: 12개월
+fcast_ets <- fit_ets %>%
+  forecast(h = 12)
+
+sw_sweep(fcast_ets, fitted = TRUE, timetk_idx = TRUE) %>% tail(12)
+
+sw_sweep(fcast_ets, timetk_idx = TRUE) %>%
+  ggplot(aes(x = index, y = 실업률, color = key)) +
+  geom_ribbon(aes(ymin = lo.95, ymax = hi.95), 
+              fill = "#D5DBFF", color = NA, size = 0) +
+  geom_ribbon(aes(ymin = lo.80, ymax = hi.80, fill = key), 
+              fill = "#596DD5", color = NA, size = 0, alpha = 0.8) +
+  geom_line(size = 1) +
+  labs(title = "대한민국 실업률: ETS 모형 예측", x = "", y = "", color="구분") +
+  theme_tq(base_family = "NanumGothic") +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  scale_color_tq() +
+  scale_fill_tq() 
+```
