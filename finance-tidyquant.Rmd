@@ -1,0 +1,62 @@
+---
+layout: page
+title: 데이터 과학 -- 금융(Finance)
+subtitle: 금융/시계열 데이터 다루기 - Tidyverse 시계열 버전
+output:
+  html_document: 
+    toc: yes
+    toc_float: true
+    highlight: tango
+    code_folding: hide
+    number_sections: TRUE
+---
+
+
+```{r, include=FALSE}
+source("tools/chunk-options.R") 
+knitr::opts_chunk$set(echo=TRUE, message=FALSE, warning=FALSE)
+
+library(quantmod)
+library(Quandl)
+
+options("getSymbols.yahoo.warning"=FALSE)
+```
+
+# 왜 `tidyquant`가 시작되었을까? [^tidyquant-intro] {#tidyquant-overview}
+
+[^tidyquant-intro]: [Davis Vaughan(2018), The future of time series and financial analysis in the tidyverse](https://www.rstudio.com/resources/videos/the-future-of-time-series-and-financial-analysis-in-the-tidyverse/)
+
+시계열 데이터는 일반적으로 많이 다루는 데이터와 비교하여 전혀 다른 생태계를 구축하고 있었다.
+`lubridate` 팩키지를 일례로 들면 복잡하고 난잡한 시계열 데이터 처리과정을 개발자 친화적으로 바꾸고자하는 노력이 있었다.
+
+[`tidyverse`](https://github.com/tidyverse/)를 통해서 데이터 분석 및 시각화, 모형개발에 대해서 크나큰 진전이 있었으나,
+시계열 데이터에 있어서는 그런 작업이 더디게 진행된다고 생각되었는지 [Business Science](https://github.com/business-science/)에서
+`tidyquant` 팩키지를 시작으로 의미있는 작업을 추진하고 있다.
+
+<iframe width="300" height="180" src="https://www.youtube.com/embed/woxJZTL2hok" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
+일단, `ts` 객체를 기반으로 `forecast`를 비롯한 수많은 시계열 예측모형이 개발되어 티블 자료형을 `ts` 객체로 변환하는 작업도 필요하고,
+시계열 특성을 충분히 발휘할 수 있도록 티블에 새로운 기능을 추가하는 것도 필요하다. 
+무엇보다도 `dplyr` 동사를 시계열 데이터에도 사용할 수 있도록 지원하는 것이 우선이다. 
+마지막으로 시계열 예측모형에서 나온 객체를 다시 티블로 만들어 이를 재사용하도록 하는 것도 필수적이다.
+
+<img src="fig/why-tidyquant.png" alt="왜 tidyquant인가" width="100%" />
+
+# `tidyquant` 생태계 {#tidyquant-ecosystem}
+
+[`tidyquant`](https://github.com/business-science/tidyquant)는 시계열 데이터의 [`tidyverse`](https://github.com/tidyverse/) 구축을 추구하고 있다.
+이를 위해서 `tidyverse`를 구성하는 어벤저스급 팩키즈에 대응되는 시계열 팩키지를 구축해나가고 있다.
+
+- 자료구조: xts를 기반으로 그 위에 과거 `ts` 객체를 지원하기 위한 [`timetk`](https://github.com/business-science/timetk),
+    티블(tibble) 자료구조 위에 시계열 기능을 확장하는 [`tibbletime`](https://github.com/business-science/tibbletime).
+- 데이터 처리: 시계열 데이터 처리를 위해서 시계열 데이터 가져오는 `tq_get()`, 시계열 데이터 조작하는 `tq_transmute()`, `tq_mutate()`등 함수와 
+    더불어 `tq_performance()`, `tq_portfolio()` 기능을 함수로 제공한다.
+- 모형: `forecast` 팩키지 등 기존 시계열 예측모형을 원활히 사용할 수 있도록 `ts` 객체를 손쉽게 만들 수 있도록 지원하는 `timetk` 팩키지,
+    시계열 데이터 처리를 한 후에 모형구축 후 생기는 다양한 시계열 모형 객체를 `broom`팩키지와 동일한 기능을 `sweep` 팩키지에서 제공하고 있다.
+
+<img src="fig/tidyquant-overview.png" alt="tidyquant 팩키지" width="100%" />
+
+
+
+
+
