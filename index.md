@@ -28,7 +28,7 @@ title: 금융(Finance)
 ## 학습목차 
 
 - **시계열 금융/경제 데이터**
-    - [금융데이터 가져오기](stat-fe-import.html)
+    - [금융데이터 가져오기](finance-data-import.html)
     - [시계열 데이터 다루기](stat-time-series-basics.html)    
 - **[금융/시계열 데이터 다루기: Tidyverse 시계열 버전](finance-tidyquant.html)**
     - [실업률 예측 - tidyquant](ts-unemployment-tidyquant.html)    
