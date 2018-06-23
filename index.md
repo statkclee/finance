@@ -29,10 +29,18 @@ title: 금융(Finance)
 
 - **시계열 금융/경제 데이터**
     - [금융데이터 가져오기](finance-data-import.html)
-    - [시계열 데이터 다루기](stat-time-series-basics.html)    
+    - [시계열 데이터 다루기](https://statkclee.github.io/statistics/stat-time-series-basics.html)    
 - **[금융/시계열 데이터 다루기: Tidyverse 시계열 버전](finance-tidyquant.html)**
     - [실업률 예측 - tidyquant](ts-unemployment-tidyquant.html)    
+- **시계열 모형**
+    - [탐색적 시계열 데이터 분석](https://statkclee.github.io/statistics/stat-time-series-eda.html)
+    - [시계열 모형 식별 도구](https://statkclee.github.io/statistics/stat-time-series-tools.html)
+    - [자기회귀이동평균(ARMA) 모형](https://statkclee.github.io/statistics/stat-time-series-arma.html)
+    - [계절 자기회귀이동평균(SARIMA)](https://statkclee.github.io/statistics/stat-time-series-sarima.html)
+    - [시계열 데이터 예측(forecast)](https://statkclee.github.io/statistics/stat-time-series-forecast.html)
+    - [시계열 예측 자동화](https://statkclee.github.io/statistics/stat-forecast-automation.html)
 - **응용**
+    - [금융공학을 위한 R 언어 기초](stat-fe-r.html)
     - [블록체인(Block Chain)](finance-blockchain.html)
 
 ### [xwMOOC 오픈 교재](https://statkclee.github.io/xwMOOC/)
