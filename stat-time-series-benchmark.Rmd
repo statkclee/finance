@@ -1,0 +1,62 @@
+---
+layout: page
+title: 데이터 과학 -- 금융(Finance)
+subtitle: 시계열 예측 성능기준(benchmark)
+output:
+  html_document: 
+    toc: yes
+    toc_float: true
+    highlight: tango
+    code_folding: show
+    number_sections: TRUE
+mainfont: NanumGothic
+---
+
+
+```{r, include=FALSE}
+source("tools/chunk-options.R") 
+knitr::opts_chunk$set(echo=TRUE, message=FALSE, warning=FALSE)
+
+library(tidyverse)
+library(xts)
+library(extrafont)
+loadfonts()
+```
+
+
+# 시계열 예측 성능비교 [^benchmark-for-forecasting] {#benchmark-for-forecasting}
+
+[^benchmark-for-forecasting]: [Rob J Hyndman(2010), "Benchmarks for forecasting"](https://robjhyndman.com/hyndsight/benchmarks/)
+
+Rob J Hyndman은 "International Journal of Forecasting" 저널에 제출된 논문에 대해서 논문게재 거절을 표하면서 다음의 기준을 제시하고 있는데 
+타당한 면이 많다.
+
+- 단변량 시계열(Univariate Time Series)
+    - 계절을 타지 않는 단변량 시계열 데이터의 성능기준은 **랜덤워크(random walk)**. 랜덤워크는 모든 예측값이 마지막 관측점과 동일하다고 예측함.
+    - 계절성을 갖는 단변량 시계열 데이터 성능기준은 계절 최종 관측값이 지난 계절 최종 관측값과 동일하게 예측함.
+    - ARIMA 모형은 모든 사람이 ARIMA 모형을 알고 있는 것이 아니라 다소 문제가 될 수 있지만, `forecast` 팩키지 `auto.arima()` 함수를 사용해서 성능기준점으로 삼을 수 있다.
+- 다변량 시계열(multivariate Time Series)
+    - 단변량 시계열(Univariate Time Series)과 동일한 방법 적용.
+- 공변량(covariate)을 갖는 시계열
+    - 표준 선형 회귀모형이 기본 성능기준을 제시하는 것으로 삼는다.    
+- [Time Series Data](https://forecasters.org/resources/time-series-data/), [Time Series Data Library(TSDL) by Rob Hyndman](https://datamarket.com/data/list/?q=provider:tsdl), 
+[M3-Competition](https://forecasters.org/resources/time-series-data/m3-competition/)에 제시된 방법론을 성능기준점으로 삼아 예측모형을 개발함.
+
+# 시계열 예측 기본 방법론 [^benchmark-simple-forecasting] {#benchmark-for-forecasting-simple}
+
+[^benchmark-simple-forecasting]: [Rob J Hyndman and George Athanasopoulos, "Forecasting: Principles and Practice", 3.1. Some simple forecasting methods](https://otexts.org/fpp2/simple-methods.html)
+
+- 평균방법: `meanf(y, h)`
+- 나이브(naive) 방법: `naive(y, h)`, `rwf(y, h)`
+- 계절 나이브(naive) 방법: `snaive(y, h)`
+- 이동(drift) 방법: `rwf(y, h, drift=TRUE)`
+- ETS: `ets()`
+- ARIMA: `auto.arima()`
+- $\theta$ 방법: `thetaf()`
+- 단일 예측 방법론보다 성능이 좋은 `forecastHybrid` 팩키지 기본기능도 권장된다.
+
+
+
+
+
+

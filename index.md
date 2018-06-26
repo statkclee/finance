@@ -35,6 +35,7 @@ title: 금융(Finance)
     - [시계열 데이터 다루기- padr, tibbletime](stat-time-series-basics.html)
 - **시계열 데이터 살펴보기**
     - [탐색적 시계열 데이터 분석](stat-time-series-eda.html)
+    - [시계열 예측 성능기준(benchmark)](stat-time-series-benchmark.html)
 - **시계열 모형**
     - [시계열 모형 식별 도구](https://statkclee.github.io/statistics/stat-time-series-tools.html)
     - [자기회귀이동평균(ARMA) 모형](https://statkclee.github.io/statistics/stat-time-series-arma.html)
