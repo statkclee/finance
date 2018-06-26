@@ -33,8 +33,9 @@ title: 금융(Finance)
         - [날짜/시간 데이터 - lubridate](data-handling-timendate.html)
         - [불규칙 시계열 데이터](ds-irregular-time-series.html)         
     - [시계열 데이터 다루기- padr, tibbletime](stat-time-series-basics.html)
+- **시계열 데이터 살펴보기**
+    - [탐색적 시계열 데이터 분석](stat-time-series-eda.html)
 - **시계열 모형**
-    - [탐색적 시계열 데이터 분석](https://statkclee.github.io/statistics/stat-time-series-eda.html)
     - [시계열 모형 식별 도구](https://statkclee.github.io/statistics/stat-time-series-tools.html)
     - [자기회귀이동평균(ARMA) 모형](https://statkclee.github.io/statistics/stat-time-series-arma.html)
     - [계절 자기회귀이동평균(SARIMA)](https://statkclee.github.io/statistics/stat-time-series-sarima.html)
