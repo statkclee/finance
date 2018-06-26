@@ -1,0 +1,133 @@
+---
+layout: page
+title: 데이터 과학 -- 금융(Finance)
+subtitle: 체중 예측 - `tibble`
+output:
+  html_document: 
+    toc: yes
+    toc_float: true
+    highlight: tango
+    code_folding: show
+    number_sections: TRUE
+mainfont: NanumGothic
+---
+
+
+```{r, include=FALSE}
+source("tools/chunk-options.R") 
+knitr::opts_chunk$set(echo=TRUE, message=FALSE, warning=FALSE)
+
+library(tidyverse)
+library(xts)
+library(extrafont)
+loadfonts()
+```
+
+
+# `forecast` 팩키지 티블 [^forecast-tsibble] {#forecast-tibble}
+
+[^forecast-tsibble]: [Econometrics and Free Software (2018), "Forecasting my weight with R"](http://www.brodrigues.co/blog/2018-06-24-fun_ts/)
+
+[Econometrics and Free Software 블로그](http://www.brodrigues.co/)에 그동안 측정해서 보관하고 있던 개인정보(체중)을 인터넷에 공개하였다.
+데이터프레임이 티블(tibble)로 확장되고 티블 자료구조에 시계열 자료형을 추가하는 시도가 많이 되고 있다.
+그중 하나의 움직임이 `tsibble`이다. 
+
+# 시계열 체중 데이터 {#forecast-tibble-weight}
+
+시계열 체중 데이터를 필요한 부분만 추출하여 뽑아내고, 이를 시각화한다. 
+
+``` {r forecast-tsibble-weight}
+# 0. 팩키지 -----
+library(tidyverse)
+library(forecast)
+library(tsibble)
+library(tibbletime)
+
+# 1. 데이터 -----
+## 1.1. 데이터 가져오기 -----
+weight_df <- read_csv("https://gist.githubusercontent.com/b-rodrigues/ea60679135f8dbed448ccf66a216811f/raw/18b469f3b0720f76ce5ee2715d0f9574b615f170/gistfile1.txt") %>% 
+  as_tsibble()
+
+## 1.2. 훈련/시험 데이터 분할 -----
+
+weight_train_df <- weight_df %>% 
+  filter(Date >= "2016-07-11", Date <= "2018-05-31") %>% 
+  rename(date = Date, weight = Poids)
+
+# 2. 시각화 -----
+## 2.1. 원본 데이터 시각화 -----
+ggplot(weight_train_df, aes(date, weight)) +
+  geom_line()
+```
+
+## 이동평균 추세선 추가 {#forecast-tibble-weight-moving-average}
+
+RcppRoll::roll_meanr() 함수를 사용해서 이동평균을 추가해서 시각화한다.
+
+``` {r forecast-tsibble-weight-ma}
+## 2.2. 이동평균 추가 -----
+weight_train_df %>% 
+  mutate(roll_10 = RcppRoll::roll_meanr(weight, n = 10, fill = NA)) %>% 
+  ggplot(aes(date, weight)) +
+    geom_line() + 
+    geom_line(aes(date, roll_10), color="red", size=1)
+```
+
+## 시계열 예측모형 적합 {#forecast-tibble-weight-arima}
+
+시계열 예측모형을 적합시키려면 자료구조를 기존 데이터프레임에서 `ts`로 변경시켜야 한다.
+`auto.arima.df()` 함수로 ARIMA 모형으로 적합시키고 나서, 객체를 `weight_models_tbl`에 원데이터,
+ARIMA 모형, 예측값 모두 한 곳에 저장시킨다.
+
+``` {r forecast-tsibble-weight-arima}
+# 3. ARIMA 예측모형 -----
+## 3.1. 예측모형 함수: DF --> TS 변환 -----
+auto.arima.df <- function(data, y, ...){
+  
+  y <- enquo(y)
+  
+  yts <- data %>% 
+    pull(!!y) %>% 
+    as.ts()
+  
+  auto.arima(yts, ...)
+}
+
+## 3.2. 예측모형 적합 -----
+weight_train_tbl <- weight_train_df %>% 
+  mutate(group = "1") %>% 
+  group_by(group) %>% 
+  nest()
+  
+weight_models_tbl <- weight_train_tbl %>% 
+  mutate(model = map(data, auto.arima.df, y = weight)) %>% 
+  mutate(predictions = map(model, forecast, h = 18)) %>% 
+  mutate(predictions = map(predictions, as_tibble))
+
+weight_models_tbl
+```
+
+## 시계열 예측 시각화 {#forecast-tibble-weight-arima-viz}
+
+"2018-06-01" 기간 이후 시험데이터를 별도로 생성시켜 이를 ARIMA 예측모형 데이터와 결합하여 데이터프레임으로 제작시키고,
+이를 `ggplot`으로 시각화한다.
+
+``` {r forecast-tsibble-weight-arima-viz}
+# 4. 예측모형 적합 -----
+
+weight_test_df <- weight_df %>% 
+  filter(Date >= "2018-06-01") %>% 
+  rename(date=Date, weight = Poids)
+
+weight_test_fcst_df <- bind_cols(weight_test_df, weight_models_tbl$predictions[[1]])
+
+weight_test_fcst_df
+
+weight_test_fcst_df %>% 
+  ggplot(aes(x=date, y=weight)) +
+    geom_point() +
+    geom_line() +
+    geom_line(aes(x=date, y=`Point Forecast`), color="red", size=1) +
+    geom_line(aes(x=date, y = `Hi 95`), color="pink", size=1) + 
+    geom_line(aes(x=date, y = `Lo 95`), color="pink", size=1)
+```

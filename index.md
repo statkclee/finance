@@ -36,12 +36,14 @@ title: 금융(Finance)
 - **시계열 데이터 살펴보기**
     - [탐색적 시계열 데이터 분석](stat-time-series-eda.html)
     - [시계열 예측 성능기준(benchmark)](stat-time-series-benchmark.html)
-- **시계열 모형**
+- **시계열 모형 - 단일모형**
     - [시계열 모형 식별 도구](https://statkclee.github.io/statistics/stat-time-series-tools.html)
     - [자기회귀이동평균(ARMA) 모형](https://statkclee.github.io/statistics/stat-time-series-arma.html)
     - [계절 자기회귀이동평균(SARIMA)](https://statkclee.github.io/statistics/stat-time-series-sarima.html)
+- **시계열 모형 - 앙상블 모형**
     - [시계열 데이터 예측(forecast)](https://statkclee.github.io/statistics/stat-time-series-forecast.html)
     - [시계열 예측 자동화](https://statkclee.github.io/statistics/stat-forecast-automation.html)
+    - [체중 예측 - `tibble`](forecast-tibble.html)
 - **응용**
     - [금융공학을 위한 R 언어 기초](stat-fe-r.html)
     - [블록체인(Block Chain)](finance-blockchain.html)
