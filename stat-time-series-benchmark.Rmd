@@ -56,6 +56,53 @@ Rob J Hyndman은 "International Journal of Forecasting" 저널에 제출된 논�
 - 단일 예측 방법론보다 성능이 좋은 `forecastHybrid` 팩키지 기본기능도 권장된다.
 
 
+# 훈련/검증 시계열 데이터 [^robjhyndman-workshop] {#benchmark-for-forecasting-data}
+
+[^robjhyndman-workshop]: [robjhyndman/ForecastingWorkshop, Slides for 3-day forecasting workshop](https://github.com/robjhyndman/ForecastingWorkshop)
+
+## 전통적인 검증 {#benchmark-for-forecasting-data-tradition}
+
+전통적인 시계열 모형 개발방법론은 훈련데이터와 시험데이터를 나누고 훈련데이터로 예측모형을 개발하고 나서 예측모형의 성능을 
+시험데이터로 검증하는 방식을 많이 취했다.
+  
+```{r train-test-split, fig.height=1}
+train = 1:18
+test = 19:24
+par(mar=c(0,0,0,0))
+plot(0,0,xlim=c(0,26),ylim=c(0,2),xaxt="n",yaxt="n",bty="n",xlab="",ylab="",type="n")
+arrows(0,0.5,25,0.5,0.05)
+points(train, train*0+0.5, pch=19, col="blue")
+points(test,  test*0+0.5,  pch=19, col="red")
+text(26,0.5,"시간")
+text(10,1,"훈련데이터",col="blue")
+text(21,1,"시험데이터",col="red")
+```
+
+## 훈련/시험 교차검증 {#benchmark-for-forecasting-data-cv}
+
+예측 정확도를 시험데이터에 대해서 평균을 내는 방법으로 "evaluation on a rolling forecasting origin"으로 알려져 있고,
+`tsCV()` 함수를 사용한다.
+  
+```{r train-test-split-cv}
+par(mar=c(0,0,0,0))
+plot(0,0,xlim=c(0,28),ylim=c(0,1),
+     xaxt="n",yaxt="n",bty="n",xlab="",ylab="",type="n")
+i <- 1
+for(j in 1:10)
+{
+  test <- (16+j):26
+  train <- 1:(15+j)
+  arrows(0,1-j/20,27,1-j/20,0.05)
+  points(train,rep(1-j/20,length(train)),pch=19,col="blue")
+  if(length(test) >= i)
+    points(test[i], 1-j/20, pch=19, col="red")
+  if(length(test) >= i)
+    points(test[-i], rep(1-j/20,length(test)-1), pch=19, col="gray")
+  else
+    points(test, rep(1-j/20,length(test)), pch=19, col="gray")
+}
+text(28,.95,"시간")
+```
 
 
 
