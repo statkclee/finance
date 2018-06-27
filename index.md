@@ -38,7 +38,7 @@ title: 금융(Finance)
     - [시계열 예측 성능기준(benchmark)](stat-time-series-benchmark.html)
 - **시계열 모형 - 단일모형**
     - [시계열 모형 식별 도구](https://statkclee.github.io/statistics/stat-time-series-tools.html)
-    - [자기회귀이동평균(ARMA) 모형 - airpassenger](stat-time-series-arma.html)
+    - [자기회귀이동평균(ARMA) 모형 - `airpassenger`](stat-time-series-arma.html)
     - [계절 자기회귀이동평균(SARIMA)](https://statkclee.github.io/statistics/stat-time-series-sarima.html)
 - **시계열 모형 - 앙상블 모형**
     - [시계열 데이터 예측(forecast)](https://statkclee.github.io/statistics/stat-time-series-forecast.html)
