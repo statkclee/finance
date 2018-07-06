@@ -78,12 +78,12 @@ text(10,1,"훈련데이터",col="blue")
 text(21,1,"시험데이터",col="red")
 ```
 
-## 훈련/시험 교차검증 {#benchmark-for-forecasting-data-cv}
+## 훈련/시험 (누적) 교차검증 {#benchmark-for-forecasting-data-cv-cumulative}
 
 예측 정확도를 시험데이터에 대해서 평균을 내는 방법으로 "evaluation on a rolling forecasting origin"으로 알려져 있고,
 `tsCV()` 함수를 사용한다.
   
-```{r train-test-split-cv}
+```{r train-test-split-cv-cumulative, fig.height=7}
 par(mar=c(0,0,0,0))
 plot(0,0,xlim=c(0,28),ylim=c(0,1),
      xaxt="n",yaxt="n",bty="n",xlab="",ylab="",type="n")
@@ -104,6 +104,30 @@ for(j in 1:10)
 text(28,.95,"시간")
 ```
 
+## 훈련/시험 (비누적) 교차검증 {#benchmark-for-forecasting-data-cv}
+
+시간창(time window)를 동일하게 이동해 가면서 내삽오차와 외삽오차를 비교하여 최적 예측모형을 구축하는 것도 가능하다.
+
+```{r train-test-split-cv, fig.height=7}
+par(mar=c(0,0,0,0))
+plot(0,0,xlim=c(0,28),ylim=c(0,1),
+     xaxt="n",yaxt="n",bty="n",xlab="",ylab="",type="n")
+i <- 1
+for(j in 1:10)
+{
+  test <- (16+j):26
+  train <- j:(15+j)
+  arrows(0,1-j/20,27,1-j/20,0.05)
+  points(train,rep(1-j/20,length(train)),pch=19,col="blue")
+  if(length(test) >= i)
+    points(test[i], 1-j/20, pch=19, col="red")
+  if(length(test) >= i)
+    points(test[-i], rep(1-j/20,length(test)-1), pch=19, col="gray")
+  else
+    points(test, rep(1-j/20,length(test)), pch=19, col="gray")
+}
+text(28,.95,"시간")
+```
 
 
 
