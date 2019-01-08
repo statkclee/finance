@@ -6,7 +6,7 @@ author:
     name: xwMOOC
     url: https://www.facebook.com/groups/tidyverse/
     affiliation: Tidyverse Korea
-date: "`r Sys.Date()`"
+date: "2019-01-08"
 output:
   html_document: 
     toc: yes
@@ -19,10 +19,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
-                      comment="", digits = 3, tidy = FALSE, prompt = FALSE, fig.align = 'center')
-```
+
 
 # 주식투자의 시작 {#start-stock-purchase}
 
@@ -43,7 +40,8 @@ knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
 이 사례를 드는 이유는 웹사이트에서 우클릭하여 복사하여 데이터를 가져오고자 할 경우 웹크롤링을 활용하면 읽기만 가능한 웹사이트에서도
 데이터를 긁어올 수 있게 된다.
 
-```{r stock-fees-tistory, eval=FALSE}
+
+```r
 library(tidyverse)
 library(rvest)
 
@@ -68,13 +66,13 @@ fee_df <- fee_dat %>%
 fee_df %>% 
   DT::datatable() %>% 
   DT::formatPercentage(c(2:4), digits = 3)
-
 ```
 
 금융투자협회 전자공시서비스 [주식거래 수수료](http://dis.kofia.or.kr/websquare/index.jsp?w2xPath=/wq/compann/DISComdStockTrdCms.xml&divisionId=MDIS02007002000000&serviceId=SDIS02007002000#!)에서 
 각 증권사별 주식거래 수수료를 비교할 수 있다. 100만원 주식거래 기준으로 "원, bp"로 표기된 엑셀 파일을 다운로드 받는다.
 
-```{r stock-fees-협회}
+
+```r
 library(tidyverse)
 library(readxl)
 
@@ -100,13 +98,15 @@ fee_df <- fee_dat %>%
 
 fee_df %>% 
   DT::datatable()
-
 ```
+
+preservec612af3495cf2aa8
 
 데이터를 살펴봤으니 이제 백만원 거래시 "원, bp" 표기된 것을 익숙한 퍼센티지(%)로 변환시켜서 증권사/은행 개설, 오프라인/HTS/ARS/스마트폰 거래 수수료를 비교해보자. 수수료가 없는 것은 제거하고 이를 수수료율과 수수료 기준으로 데이터를 정제한다. 대신증권 은행/스마트폰 HTS 거래의 경우 수수료율이 0.011%로 110원으로 최소인 반면, 
 케이프투자증권 은행/증권사 오프라인 거래의 경우 수수료가 6,000원 부과되고 있다.
 
-```{r trade-hts-fees-comparison}
+
+```r
 fee_viz_df <- fee_df %>% 
   select(-`구분`) %>% 
   gather(`거래구분`, `수수료`, -`회사명`) %>% 
@@ -119,9 +119,12 @@ fee_viz_df %>%
   DT::formatRound("수수료", digits=0) 
 ```
 
+preserve0f80a8936a33c72c
+
 은행개설이 증권사 개설보다 수수료가 저렴한 것이 확인되고, 오프라인 > ARS > HTS/스마트폰 순으로 수수료율이 적은 것이 확인된다.
 
-```{r trade-hts-fees-comparison-viz, fig.width=10, fig.height=8} 
+
+```r
 library(extrafont)
 loadfonts()
 
@@ -135,6 +138,8 @@ fee_viz_df %>%
     scale_y_continuous(labels=scales::percent) +
     theme_minimal(base_family = "NanumGothic")
 ```
+
+<img src="finance-stock_files/figure-html/trade-hts-fees-comparison-viz-1.png" width="960" style="display: block; margin: auto;" />
 
 # 대신증권 사례 {#trade-fee-daishin}
 
