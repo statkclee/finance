@@ -43,11 +43,11 @@ knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
 이 사례를 드는 이유는 웹사이트에서 우클릭하여 복사하여 데이터를 가져오고자 할 경우 웹크롤링을 활용하면 읽기만 가능한 웹사이트에서도
 데이터를 긁어올 수 있게 된다.
 
-```{r stock-fees-tistory, eval=FALSE}
+```{r stock-fees-tistory, eval=TRUE}
 library(tidyverse)
 library(rvest)
 
-Sys.setlocale("LC_ALL", "C")
+# Sys.setlocale("LC_ALL", "C")
 
 url <- "http://liferootkam.tistory.com/259"
 
@@ -56,7 +56,7 @@ fee_dat <- url %>%
   html_node(xpath='//*[@id="content"]/article/div[3]/div/table') %>% 
   html_table() 
 
-Sys.setlocale("LC_ALL", "Korean")
+# Sys.setlocale("LC_ALL", "Korean")
 
 fee_df <- fee_dat %>% 
   set_names(fee_dat[1,]) %>% 
