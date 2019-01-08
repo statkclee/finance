@@ -98,7 +98,7 @@ library(rvest)
 
 Sys.setlocale("LC_ALL", "C")
 
-kisline_url <- "http://media.kisline.com/highlight/mainHighlight.nice?paper_stock=069080"
+kisline_url <- "http://media.kisline.com/highlight/mainHighlight.nice?paper_stock=293940"
 
 stock_dat <- kisline_url %>% 
   read_html() %>% 
@@ -108,7 +108,7 @@ stock_dat <- kisline_url %>%
 Sys.setlocale("LC_ALL", "Korean")
 
 stock_df <- stock_dat %>% 
-  set_names(stock_dat[1,]) %>% 
+  set_names(make.names(stock_dat[1,], unique = TRUE)) %>% 
   filter(row_number() != 1) %>% 
   gather(year, value, -`구분`) %>% 
   mutate(value = parse_number(value))
@@ -137,7 +137,7 @@ get_company_info <- possibly(function(stock_code) {
   Sys.setlocale("LC_ALL", "Korean")
 
   stock_df <- stock_dat %>% 
-    set_names(stock_dat[1,]) %>% 
+    set_names(make.names(stock_dat[1,], unique = TRUE)) %>% 
     filter(row_number() != 1) %>% 
     gather(year, value, -`구분`) %>% 
     mutate(value = parse_number(value))
@@ -146,7 +146,7 @@ get_company_info <- possibly(function(stock_code) {
 }, otherwise = NA)
 
 # webzen <- get_company_info("069080")
-# get_company_info("293940")
+get_company_info("293940")
 
 company_df <- read_rds("data/stock_code_df.rds") %>% 
   select(`회사명`, `종목코드`, `업종`)
