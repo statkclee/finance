@@ -50,6 +50,7 @@ title: 금융(Finance)
     - [블록체인(Block Chain)](finance-blockchain.html)
     - [실업률 예측 - tidyquant](ts-unemployment-tidyquant.html)    
 - **[주식투자](finance-stock.html)**
+    - **[재무제표(Financial Statement)](financial-report.html)**
 
 
 ### [xwMOOC 오픈 교재](https://statkclee.github.io/xwMOOC/)
