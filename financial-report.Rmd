@@ -51,6 +51,8 @@ stock_code_df %>%
   DT::datatable(escape = FALSE,  filter = 'top')
 
 # stock_code_df %>% write_rds("data/stock_code_df.rds")
+kospi_df %>% write_rds("data/kospi_df.rds")
+kosdaq_df %>% write_rds("data/kosdaq_df.rds")
 ```
 
 ## 연도별 상장업체 {#stock-company-code-by-listed}
@@ -96,16 +98,13 @@ stock_code_df %>%
 library(tidyverse)
 library(rvest)
 
-Sys.setlocale("LC_ALL", "C")
-
-kisline_url <- "http://media.kisline.com/highlight/mainHighlight.nice?paper_stock=293940"
+# kisline_url <- "http://media.kisline.com/highlight/mainHighlight.nice?paper_stock=293940"
+kisline_url <- "http://media.kisline.com/highlight/mainHighlight.nice?paper_stock=069080"
 
 stock_dat <- kisline_url %>% 
   read_html() %>% 
   html_node(xpath = '//*[@id="summarytp1"]/table[1]') %>% 
   html_table()
-
-Sys.setlocale("LC_ALL", "Korean")
 
 stock_df <- stock_dat %>% 
   set_names(make.names(stock_dat[1,], unique = TRUE)) %>% 
@@ -126,7 +125,7 @@ library(tictoc)
 
 get_company_info <- possibly(function(stock_code) {
   
-  Sys.setlocale("LC_ALL", "C")
+  # Sys.setlocale("LC_ALL", "C")
 
   kisline_url <- paste0("http://media.kisline.com/highlight/mainHighlight.nice?paper_stock=", stock_code)
 
@@ -134,10 +133,10 @@ get_company_info <- possibly(function(stock_code) {
     read_html() %>% 
     html_node(xpath = '//*[@id="summarytp0"]/table[1]') %>% 
   
-  Sys.setlocale("LC_ALL", "Korean")
+  # Sys.setlocale("LC_ALL", "Korean")
 
   stock_df <- stock_dat %>% 
-    set_names(make.names(stock_dat[1,], unique = TRUE)) %>% 
+    # set_names(make.names(stock_dat[1,], unique = TRUE)) %>% 
     filter(row_number() != 1) %>% 
     gather(year, value, -`구분`) %>% 
     mutate(value = parse_number(value))
@@ -152,12 +151,58 @@ company_df <- read_rds("data/stock_code_df.rds") %>%
   select(`회사명`, `종목코드`, `업종`)
 
 tic()
-company_map_df <- company_df %>% 
+kospi_map_df <- kospi_df %>% 
   mutate(data = map_df(`종목코드`, ~get_company_info(.x)))
 toc()
 
-company_map_df %>% 
-  write_rds("data/company_map_df.rds")
+kospi_map_df %>% 
+  write_rds("data/kospi_map_df.rds")
+
+```
+
+## `for` 루프 버젼 {#financial-statement-kospi-for}
+
+
+```{r kospi-company-info-for}
+## 회사코드를 넣으면 기업정보를 반환시키는 함수
+library(tictoc)
+
+
+for(i in 1:nrow(kospi_df)) {
+  cat(i, ": ", kospi_df$회사명[i])
+}
+  
+
+  kisline_url <- paste0("http://media.kisline.com/highlight/mainHighlight.nice?paper_stock=", stock_code)
+
+  stock_dat <- kisline_url %>% 
+    read_html() %>% 
+    html_node(xpath = '//*[@id="summarytp0"]/table[1]') %>% 
+  
+  # Sys.setlocale("LC_ALL", "Korean")
+
+  stock_df <- stock_dat %>% 
+    # set_names(make.names(stock_dat[1,], unique = TRUE)) %>% 
+    filter(row_number() != 1) %>% 
+    gather(year, value, -`구분`) %>% 
+    mutate(value = parse_number(value))
+  
+  return(stock_df)
+}, otherwise = NA)
+
+# webzen <- get_company_info("069080")
+get_company_info("293940")
+
+company_df <- read_rds("data/stock_code_df.rds") %>% 
+  select(`회사명`, `종목코드`, `업종`)
+
+tic()
+kospi_map_df <- kospi_df %>% 
+  mutate(data = map_df(`종목코드`, ~get_company_info(.x)))
+toc()
+
+kospi_map_df %>% 
+  write_rds("data/kospi_map_df.rds")
 
 ```
 
