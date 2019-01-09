@@ -108,101 +108,70 @@ stock_dat <- kisline_url %>%
 
 stock_df <- stock_dat %>% 
   set_names(make.names(stock_dat[1,], unique = TRUE)) %>% 
-  filter(row_number() != 1) %>% 
-  gather(year, value, -`구분`) %>% 
-  mutate(value = parse_number(value))
+  filter(row_number() != 1) 
 
 stock_df %>% 
   DT::datatable()
 ```
 
-## 코스피 유가증권 기업정보 {#financial-statement-kospi}
+# 야후 파이낸스 기업정보 {#financial-statement-yahoo}
+
+- 손익계산서(income statement): [https://finance.yahoo.com/quote/AAPL/financials?p=AAPL](https://finance.yahoo.com/quote/AAPL/financials?p=AAPL)
+- 대차대조표(balance sheet): [https://finance.yahoo.com/quote/AAPL/balance-sheet?p=AAPL](https://finance.yahoo.com/quote/AAPL/balance-sheet?p=AAPL)
+- 현금유동성: [https://finance.yahoo.com/quote/AAPL/cash-flow?p=AAPL](https://finance.yahoo.com/quote/AAPL/cash-flow?p=AAPL)
 
 
-```{r kospi-company-info}
-## 회사코드를 넣으면 기업정보를 반환시키는 함수
-library(tictoc)
+```{r yahoo-finance}
+library(tidyverse)
+library(rvest)
 
-get_company_info <- possibly(function(stock_code) {
-  
-  # Sys.setlocale("LC_ALL", "C")
+is_df <- "https://finance.yahoo.com/quote/AAPL/financials?p=APPL" %>% 
+  read_html() %>% 
+  html_table() %>% 
+  map_df(bind_cols) %>% 
+  as_tibble()
 
-  kisline_url <- paste0("http://media.kisline.com/highlight/mainHighlight.nice?paper_stock=", stock_code)
-
-  stock_dat <- kisline_url %>% 
-    read_html() %>% 
-    html_node(xpath = '//*[@id="summarytp0"]/table[1]') %>% 
-  
-  # Sys.setlocale("LC_ALL", "Korean")
-
-  stock_df <- stock_dat %>% 
-    # set_names(make.names(stock_dat[1,], unique = TRUE)) %>% 
-    filter(row_number() != 1) %>% 
-    gather(year, value, -`구분`) %>% 
-    mutate(value = parse_number(value))
-  
-  return(stock_df)
-}, otherwise = NA)
-
-# webzen <- get_company_info("069080")
-get_company_info("293940")
-
-company_df <- read_rds("data/stock_code_df.rds") %>% 
-  select(`회사명`, `종목코드`, `업종`)
-
-tic()
-kospi_map_df <- kospi_df %>% 
-  mutate(data = map_df(`종목코드`, ~get_company_info(.x)))
-toc()
-
-kospi_map_df %>% 
-  write_rds("data/kospi_map_df.rds")
+is_df
 
 ```
 
-## `for` 루프 버젼 {#financial-statement-kospi-for}
 
+# 네이버 파이낸스 기업정보 [^naver-crawling] {#financial-statement-naver}
 
-```{r kospi-company-info-for}
-## 회사코드를 넣으면 기업정보를 반환시키는 함수
-library(tictoc)
+[^naver-crawling]: [네이버 파이낸스 - 재무제표 크롤링](https://financedata.github.io/posts/naver-finance-finstate-crawling.html)
 
+- `cmp_cd`(종목코드) &rarr; 	005930
+- `fin_typ`(재무제표 유형) &rarr; 	0: 주재무제표, 1: GAAP개별, 2: GAAP연결, 3: IFRS별도, 4:IFRS연결
+- `freq_typ`(기간): &rarr; Y:년, Q:분기
 
-for(i in 1:nrow(kospi_df)) {
-  cat(i, ": ", kospi_df$회사명[i])
-}
+```{r naver-finance-crawling}
+library(janitor)
+
+kospi_df <- read_rds("data/kospi_df.rds")
+
+# company_url <- 'http://companyinfo.stock.naver.com/v1/company/cF1001.aspx?cmp_cd=%s&fin_typ=%s&freq_typ=%s'
+
+company_url <- 'http://companyinfo.stock.naver.com/v1/company/cF1001.aspx?cmp_cd=005930&fin_typ=0&freq_typ=Y'
+
+company_html <- company_url %>% 
+  read_html() 
+
+company_dat <- company_html %>% 
+  html_nodes(xpath='//*[@id="cTB26"]') %>% 
+  html_table(fill = TRUE) %>% 
+  .[[1]]
+
+company_df <- company_dat %>% 
+  clean_names() %>% 
+  select(`주_요_재_무_정_보`, contains("연_간")) 
   
+company_df <- company_df %>% 
+  set_names(company_df[1,]) %>% 
+  filter(row_number() != 1) %>% 
+  gather(`연도`, `값`, -주요재무정보) %>% 
+  mutate(`연도` = str_extract(`연도`, "[0-9]{4}")) %>% 
+  mutate(`값` = parse_number(`값`))
 
-  kisline_url <- paste0("http://media.kisline.com/highlight/mainHighlight.nice?paper_stock=", stock_code)
-
-  stock_dat <- kisline_url %>% 
-    read_html() %>% 
-    html_node(xpath = '//*[@id="summarytp0"]/table[1]') %>% 
-  
-  # Sys.setlocale("LC_ALL", "Korean")
-
-  stock_df <- stock_dat %>% 
-    # set_names(make.names(stock_dat[1,], unique = TRUE)) %>% 
-    filter(row_number() != 1) %>% 
-    gather(year, value, -`구분`) %>% 
-    mutate(value = parse_number(value))
-  
-  return(stock_df)
-}, otherwise = NA)
-
-# webzen <- get_company_info("069080")
-get_company_info("293940")
-
-company_df <- read_rds("data/stock_code_df.rds") %>% 
-  select(`회사명`, `종목코드`, `업종`)
-
-tic()
-kospi_map_df <- kospi_df %>% 
-  mutate(data = map_df(`종목코드`, ~get_company_info(.x)))
-toc()
-
-kospi_map_df %>% 
-  write_rds("data/kospi_map_df.rds")
 
 ```
 
