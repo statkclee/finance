@@ -47,7 +47,7 @@ knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
 library(tidyverse)
 library(rvest)
 
-# Sys.setlocale("LC_ALL", "C")
+Sys.setlocale("LC_ALL", "C")
 
 url <- "http://liferootkam.tistory.com/259"
 
@@ -56,7 +56,7 @@ fee_dat <- url %>%
   html_node(xpath='//*[@id="content"]/article/div[3]/div/table') %>% 
   html_table() 
 
-# Sys.setlocale("LC_ALL", "Korean")
+Sys.setlocale("LC_ALL", "Korean")
 
 fee_df <- fee_dat %>% 
   set_names(fee_dat[1,]) %>% 
@@ -215,7 +215,7 @@ div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 10px;}
 
 # fees <- amount * (0.011 / 100 * 2 + 0.3 /100)
 
-fee_df <- tibble(`매수금` = amount)
+fee_df <- tibble(`매수금` = `매수금`)
 
 fee_df %>% 
   mutate(`거래수수료` = 0.011 / 100,
