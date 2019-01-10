@@ -168,7 +168,7 @@ company_df <- company_dat %>%
 company_df <- company_df %>% 
   set_names(company_df[1,]) %>% 
   filter(row_number() != 1) %>% 
-  gather(`연도`, `값`, -주요재무정보) %>% 
+  gather(`연도`, `값`, -`주요재무정보`) %>% 
   mutate(`연도` = str_extract(`연도`, "[0-9]{4}")) %>% 
   mutate(`값` = parse_number(`값`))
 
