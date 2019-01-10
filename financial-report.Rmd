@@ -149,14 +149,10 @@ library(janitor)
 
 kospi_df <- read_rds("data/kospi_df.rds")
 
-# company_url <- 'http://companyinfo.stock.naver.com/v1/company/cF1001.aspx?cmp_cd=%s&fin_typ=%s&freq_typ=%s'
-
 company_url <- 'http://companyinfo.stock.naver.com/v1/company/cF1001.aspx?cmp_cd=005930&fin_typ=0&freq_typ=Y'
 
-company_html <- company_url %>% 
-  read_html() 
-
-company_dat <- company_html %>% 
+company_dat <- company_url %>% 
+  read_html() %>% 
   html_nodes(xpath='//*[@id="cTB26"]') %>% 
   html_table(fill = TRUE) %>% 
   .[[1]]
@@ -172,6 +168,7 @@ company_df <- company_df %>%
   mutate(`연도` = str_extract(`연도`, "[0-9]{4}")) %>% 
   mutate(`값` = parse_number(`값`))
 
-
+company_df %>% 
+  DT::datatable()
 ```
 
