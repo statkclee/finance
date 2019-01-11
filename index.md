@@ -50,6 +50,7 @@ title: 금융(Finance)
     - [블록체인(Block Chain)](finance-blockchain.html)
     - [실업률 예측 - tidyquant](ts-unemployment-tidyquant.html)    
 - **[주식투자](finance-stock.html)**
+    - [파이썬 프로그래밍 - Sublime Text3](financial-python.html)
     - [재무제표(Financial Statement)](financial-report.html)
     - [채권](financial-bond.html)
 
