@@ -1,0 +1,226 @@
+---
+layout: page
+title: 데이터 과학 -- 금융(Finance)
+subtitle: "상장사 목록 &rarr; 주가"
+author:
+    name: xwMOOC
+    url: https://www.facebook.com/groups/tidyverse/
+    affiliation: Tidyverse Korea
+date: "`r Sys.Date()`"
+output:
+  html_document: 
+    toc: yes
+    toc_float: true
+    highlight: tango
+    code_folding: show
+    number_section: true
+    self_contained: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
+                      comment="", digits = 3, tidy = FALSE, prompt = FALSE, fig.align = 'center')
+```
+
+# 한국 거래종목 데이터 {#import-krx-listing-data}
+
+[한국거래소 KRX](http://www.krx.co.kr/)에서 `통계 &rarr; 주식 &rarr; 종목시세 &rarr; [81004] 전체 종목시세`에서 
+[81004 전체 종목시세](http://marketdata.krx.co.kr/mdi#document=13020101)에서 한국거래소에서 거래되고 있는 
+상장사 목록 및 시가총액 데이터를 구할 수 있다.
+
+교환소 별로 다운로드 받은 데이터를 하나로 묶어서 현재 거래가 되고 있는 주식 1000개를 뽑아 표로 만들어 본다.
+
+
+```{r krx-import-listings-data}
+library(tidyverse)
+library(rvest)
+library(readxl)
+library(janitor)
+
+kospi_dat <- read_excel("data/KRX-상장사-20190111.xlsx", sheet="KOSPI") %>% 
+  mutate(`거래소` = "코스피")
+kosdaq_dat <- read_excel("data/KRX-상장사-20190111.xlsx", sheet="KOSDAQ") %>% 
+  mutate(`거래소` = "코스닥")
+
+krx_dat <- bind_rows(kospi_dat,kosdaq_dat)  %>% 
+  set_names(c("종목코드", "종목명", "현재가", "대비", "등락률", "시가", "고가", 
+"저가", "거래량", "거래대금", "시가총액", "시총비중", 
+"상장주식수", "거래소")) %>% 
+  select_("거래소", "종목코드", "종목명", "현재가", "현재가",  "상장주식수", "시가총액")
+
+krx_df <- krx_dat %>% 
+  mutate(`현재가` = parse_number(`현재가`),
+          `상장주식수` = parse_number(`상장주식수`),
+          `시가총액` = parse_number(`시가총액`)) %>% 
+  mutate(`시가총억원` = `시가총액`/1e8) %>% 
+  select(-`시가총액`)
+
+krx_df %>% 
+  DT::datatable() %>% 
+  DT::formatRound(4:6, digits=0)
+
+```
+
+우선주 시가총액 계산시 반영 검토.
+
+```{r krx-import-listings-data-wrangling}
+krx_df %>% 
+  filter(str_detect(`종목명`, "[0-9]?우[B]?$" ))
+```
+
+
+# 거래소 기초분석 {#krx-import-financial-listing}
+
+## 거래소 규모 {#krx-import-financial-listing-exchange}
+
+코스피와 코스닥에 따라 상장 기업수와 시가총액을 배교한다. 
+"e-나라지표 국정모니터링지표"에서 [상장회사수, 시가총액 ](http://www.index.go.kr/potal/main/EachDtlPageDetail.do?idx_cd=1079)을 비교한다.
+e-나라지표에서 산출한 근거는 2018년 12월 31일 최종 거래 기준으로 이며 우선주가 해당회사에 귀속되어 차이가 난다.
+
+- 유가증권시장: 788 社, 1,344 조
+- 코스닥시장: 1,323 社,   228 조
+
+```{r basic-data-analysis-by-exchange}
+krx_df %>% 
+  count(`거래소`) %>% 
+  mutate(`비율` = scales::percent(n / sum(n)))
+
+krx_df %>% 
+  group_by(`거래소`) %>% 
+  summarise(`시가총조원` = sum(`시가총억원`)/1e4) %>% 
+  mutate(`비율` = scales::percent(`시가총조원`/ sum(`시가총조원`)))
+```
+
+## 거래소 상장사 시총비중 {#krx-listing-size-by-sector}
+
+유가증권거래소와 코스닥을 합하면 약 2,000개 회사가 상장되어 있으며 상위 100개 회사 즉 5% 회사가 시가총액의 70%를 점유하고 있는 것이 확인된다.
+
+```{r krx-listing-size-by-sector}
+krx_top_df <- krx_df %>% 
+  arrange(desc(`시가총억원`)) %>% 
+  mutate(`누적시총_조` = cumsum(`시가총억원`)/1e4) %>% 
+  mutate(`누적시총_조_누적율` = `누적시총_조` / (sum(`시가총억원`)/1e4))
+
+krx_top_df %>% 
+  top_n(100, wt=`시가총억원`) %>% 
+  DT::datatable() %>% 
+    DT::formatRound(c("현재가", "상장주식수", "시가총억원", "누적시총_조"), digits=0) %>% 
+    DT::formatPercentage("누적시총_조_누적율", digits=1)
+```
+
+
+## 거래소 시가총액 {#listing-market-cap-by-sector}
+
+시가총액을 백만달러로 변환시킨 `market_cap_m` 변수를 분야(`sector`)와 조합하여 가장 비중이 많은 분야를 거래소와 교차하여 확인한다.
+
+```{r market-cap-by-sector}
+library(extrafont)
+loadfonts()
+
+krx_top_df %>% 
+  slice(1:20) %>% 
+  mutate(`시총조원` = `시가총억원`/1e4) %>% 
+  ggplot(aes(x=fct_reorder(`종목명`,`시총조원`), y=`시총조원`)) +
+    geom_col() +
+    coord_flip() +
+    labs(x="", y="시가총액: 단위(조원)", title="한국거래소 상장사 시가총액",
+         subtitle = "2019-01-11") +
+    theme_minimal(base_family = "NanumGothic")
+```
+
+
+# 주식 데이터 {#listing-stock-data}
+
+[`quantmod`](https://github.com/joshuaulrich/quantmod) 팩키지로부터 관심있는 주식에 대한 주식 종명명 약칭(stock symbol)을 찾아 바로 거래가격을 확인할 수 있다.
+
+## `quantmod` 헬로월드 {#listing-stock-data-hello-world}
+
+`quantmod` 팩키지를 통해 주식 거래 데이터를 가져올 수 있다.
+구글 금융(Google finance)은 2018년 3월 이후 서비스를 중단(`Google Finance stopped providing data in March, 2018.`)해서 대안으로 야후 금융(yahoo finance)에서 데이터를 가져온다.
+
+야후 금융(Yahoo Finance)에서 거래주식 데이터를 가져오는 방식은 `종목코드.KS` 방식으로 하면 된다. 즉, 삼성전자(`005930`) 코드에 `.KS`를 붙이게 되면 
+`005930.KS`가 되고 이를 `quantmod` 팩키지 `getSymbols()` 함수에 넣어 주식거래 시세를 받아오면 된다.
+
+`quantmod` 팩키지 시계열 데이터는 `OHLC` (Open, Hi, Lo and Close)를 담고 있기 때문에 다음 두가지 방식으로 데이터를 가져와서 분석에 사용할 수 있다.
+
+```{r market-cap-stock-data}
+# remotes::install_github("joshuaulrich/quantmod")
+library(quantmod)
+
+`삼성전자` <- getSymbols("005930.KS", src = "yahoo", from = as.Date("2018-01-01"), to = Sys.Date(), auto.assign = FALSE)
+
+head(`삼성전자`)
+
+head(Cl(`삼성전자`))
+```
+
+## 한국상장 중국기업  {#krx-listing-stock-data-china-company}
+
+[국내 상장 중국기업](http://www.infostock.co.kr/sector/code.asp?code=228)을 기사에서 뽑아 시가총액과 주식가격을 살펴보자.
+
+1. [국내 상장 중국기업](http://www.infostock.co.kr/sector/code.asp?code=228)에서 중국기업 코드를 추출한다.
+1. `quantmod` 팩키지에서 `getSymbols()` 함수로 "2010-01-01" 부터 최근까지 주가데이터를 가져온다.
+1. `zoo` 자료형을 데이터프레임으로 변환시킨다.
+1. `ggplot()` 그래프로 시각화한다.
+
+### 국내상장 중국기업  {#krx-listing-stock-data-china-company-list}
+
+상장사 시가총액이 담긴 데이터프레임과 결합하여 중국기업 상장주식수와 시가총액을 확인한다.
+
+```{r market-cap-stock-china}
+library(extrafont)
+loadfonts()
+
+china_df <- tribble( ~ "종목코드", ~"종목명",
+                       "900080", "에스앤씨엔진그룹",
+                       "900040", "차이나그레이트",
+                       "900110",	"이스트아시아홀딩스",
+                       "900120", "씨케이에이치",
+                       "900070", "글로벌에스엠",
+                       "900250", "크리스탈신소재",
+                       "900260", "로스웰",
+                       "900270", "헝셩그룹",
+                       "900280", "골든센츄리",
+                       "900290", "GRT",
+                       "900300", "오가닉티코스메틱",
+                       "900310", "컬러레이")
+
+china_df <- left_join(china_df, krx_df)
+
+china_df %>% 
+  DT::datatable() %>% 
+    DT::formatRound(c("현재가", "상장주식수", "시가총억원"), digits=0)
+```
+
+### 주식거래 데이터 {#krx-listing-stock-data-china-company-price}
+
+`quandmod` 팩키지 야후 금융 API를 통해 시세 데이터를 가져온다.
+코스피는 `.KS`를 붙였다면, 코스닥은 `.KQ`를 붙이는 것이 차이점이 있다.
+
+```{r market-cap-stock-china-price}
+china_stock_code <- paste0(china_df$`종목코드`, ".KQ")
+
+getSymbols(china_stock_code, src = "yahoo", from = as.Date("2017-01-01"), to = Sys.Date(), auto.assign = TRUE)
+
+# 제외
+china_stock_zoo <- merge(`900080.KQ`, `900040.KQ`, `900110.KQ`, `900120.KQ`,`900070.KQ`, `900250.KQ`, `900260.KQ`, `900270.KQ`, `900280.KQ`,  `900300.KQ`, `900310.KQ`, `900290.KQ`)
+
+china_stock_df <- data.frame(date=index(china_stock_zoo), coredata(china_stock_zoo))
+
+china_stock_df %>% 
+  select(date, contains("Close")) %>% 
+  gather(`종목코드`, `주가`, -date) %>% 
+  mutate(`종목코드` = str_remove(`종목코드`, ".Close")) %>% 
+  mutate(`종목코드` = str_extract_all(`종목코드`, "\\d.+") %>% str_remove(.,".KQ")) %>% 
+  left_join(krx_df) %>% 
+  ggplot(aes(x=date, y=`주가`, color=`종목명`)) +
+    geom_line() +
+    scale_y_sqrt(labels = scales::comma) +
+    scale_x_date(date_labels = "%y-%m") +
+    labs(x="", y="주가", title="코스닥 상장된 중국기업 주가 추이",
+         subtitle="출처: Yahoo Finance, 2017-01-01 ~") +
+    theme_minimal(base_family = "NanumGothic")
+
+```
