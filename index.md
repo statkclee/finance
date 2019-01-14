@@ -49,6 +49,7 @@ title: 금융(Finance)
     - [금융공학을 위한 R 언어 기초](stat-fe-r.html)
     - [블록체인(Block Chain)](finance-blockchain.html)
     - [실업률 예측 - tidyquant](ts-unemployment-tidyquant.html)    
+- **[자본주의와 나](finance-capitalism.html)**
 - **[주식투자](finance-stock.html)**
     - [파이썬 프로그래밍 - Sublime Text3](financial-python.html)
     - [상장사 목록 &rarr; 주가](financial-listing-to-stock-krx.html)
