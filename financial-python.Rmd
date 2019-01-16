@@ -126,8 +126,42 @@ Sublime Text 편집기가 강력한 이유는 이를 지원하는 다양한 플�
 [팩키지](https://packagecontrol.io/)를 찾아보고 파이썬 프로그래밍에 도움이 되는 플러그인(plugin)을 설치한다.
 
 
-# 
+# `SublimeREPL` 팩키지 설치 {#install-plugin-on-sublime-repl}
 
-Ctrl + Shift + P
+`Ctrl + Shift + P` 를 입력했을 때 "Package Control: Install Package"가 뜨고 필요한 팩키지를 설치한다.
+먼저 `SublimeREPL` 팩키지를 설치하여 인터랙티브 파이썬 프로그램 개발을 가능하게 한다.
 
 
+<style>
+div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 10px;}
+</style>
+<div class = "blue">
+
+**`sublime there are no packages available for installation` 오류** [^package-install-error]
+
+[^package-install-error]: [木白no1 (2017), "Solve sublime text can not install plugin problem"](https://www.jianshu.com/p/23d1ec6988e5)
+
+Sublime Text Package Control을 통해 플러그인을 설치하지 못하는 경우가 있다. 
+
+`Preferences` > `Package Settings` > `Package Control` > `Settings - User`으로 가서 다음 사항을 반영한다.
+
+``` {r fix-plugin-error, eval=FALSE}
+"channels":
+    [
+        "http://cst.stu.126.net/u/json/cms/channel_v3.json",
+        //"https://packagecontrol.io/channel_v3.json",
+        //"https://web.archive.org/web/20160103232808/https://packagecontrol.io/channel_v3.json",
+        //"https://gist.githubusercontent.com/nick1m/660ed046a096dae0b0ab/raw/e6e9e23a0bb48b44537f61025fbc359f8d586eb4/channel_v3.json"
+    ],
+```
+
+</div>
+
+
+# `SublimeLinter-flake8` 팩키지 설치 {#install-plugin-on-sublime-repl}
+
+`SublimeLinter` 플러그인은 실시간 문법 검사기능을 제공한다.
+
+# `SublimeCodeIntel` 팩키지 설치 {#install-plugin-on-sublime-sublimecodeintel}
+
+`SublimeCodeIntel` 플러그인은 키워드 입력도중에 자동완성 가능한 키워드들을 출력하는 기능을 제공한다.

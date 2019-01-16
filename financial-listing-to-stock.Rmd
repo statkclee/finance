@@ -1,0 +1,205 @@
+---
+layout: page
+title: 데이터 과학 -- 금융(Finance)
+subtitle: "상장사 목록 &rarr; 주가"
+author:
+    name: xwMOOC
+    url: https://www.facebook.com/groups/tidyverse/
+    affiliation: Tidyverse Korea
+date: "`r Sys.Date()`"
+output:
+  html_document: 
+    toc: yes
+    toc_float: true
+    highlight: tango
+    code_folding: show
+    number_section: true
+    self_contained: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
+                      comment="", digits = 3, tidy = FALSE, prompt = FALSE, fig.align = 'center')
+```
+
+# 미국 주식데이터 {#import-financial-data}
+
+[nasdaq](https://www.nasdaq.com/screening/companies-by-industry.aspx?exchange=NASDAQ) 웹사이트에서 나스닥 뿐만 아니라 [NYSE](https://www.nasdaq.com/screening/companies-by-industry.aspx?exchange=NYSE), [AMEX](https://www.nasdaq.com/screening/companies-by-industry.aspx?exchange=AMEX) 상장사 정보를 가져올 수 있다. 
+
+```{r import-listings-data}
+library(tidyverse)
+library(rvest)
+
+# NYSE
+download.file(url="https://www.nasdaq.com/screening/companies-by-industry.aspx?exchange=NYSE&render=download",
+              destfile = "data/NYSE.csv")
+
+# AMEX
+download.file(url="https://www.nasdaq.com/screening/companies-by-industry.aspx?exchange=AMEX&render=download",
+              destfile = "data/AMEX.csv")
+
+# NASDAQ
+download.file(url="https://www.nasdaq.com/screening/companies-by-industry.aspx?exchange=NASDAQ&render=download",
+              destfile = "data/NASDAQ.csv")
+```
+
+교환소 별로 다운로드 받은 데이터를 하나로 묶어서 현재 거래가 되고 있는 주식 1000개를 뽑아 표로 만들어 본다.
+
+```{r wrangling-data}
+library(janitor)
+amex_df <- read_csv("data/amex.csv", na=c("n/a"),
+                    col_types = 'ccddcdcccc') %>% mutate(exchange="amex")
+nasdaq_df <- read_csv("data/nasdaq.csv", na=c("n/a"),
+                      col_types = 'ccddcdcccc') %>% mutate(exchange="nasdaq")
+nyse_df <- read_csv("data/nyse.csv", na=c("n/a"),
+                    col_types = 'ccddcdcccc') %>% mutate(exchange="nyse")
+
+listing_df <- bind_rows(amex_df, nasdaq_df) %>% 
+  bind_rows(nyse_df) %>% 
+  clean_names() %>% 
+  set_names(c("symbol", "name", "last_sale", "market_cap", "adr_tso", "ipo_year", 
+"sector", "industry", "summary_quote", "x10", "exchange")) %>% 
+  select(-x10)
+
+listing_df %>% 
+  select(exchange, everything()) %>% 
+  filter(market_cap > 0) %>% 
+  top_n(1000, wt=market_cap) %>% 
+  arrange(desc(market_cap)) %>% 
+  DT::datatable()
+```
+
+# 거래소 기초분석 {#import-financial-listing}
+
+## 거래소 규모 {#import-financial-listing-exchange}
+
+NYSE, NASDAQ, AMEX 거래소 시가총액을 계산한다. 
+시가총액은 단위가 너무 커서 Overflow가 발생할 수 있어 상장사별 시가총액을 $10^6$ 으로 나눠 단위를 백만달러(million dollar)로 변환시킨 후에 상장사와 상장사 시가총액을 모두 합한 후 거래소 비중을 비율로 파악한다.
+
+```{r basic-data-analysis-by-exchange}
+data_df <- listing_df %>% 
+  select(exchange, everything()) %>% 
+  filter(market_cap > 0) %>% 
+  mutate(market_cap_m = market_cap / 1e6) %>% 
+  select(-market_cap)
+
+data_df %>% 
+  count(exchange, sort=TRUE) %>% 
+  mutate(pcnt = scales::percent(n / sum(n)))
+
+data_df %>% 
+  group_by(exchange) %>% 
+  summarise(market_cap = sum(market_cap_m)) %>% 
+  mutate(pcnt = scales::percent(market_cap / sum(market_cap)))
+```
+
+
+# 분야별 주식비중 {#listing-market-cap}
+
+## 거래소 상장사수 {#listing-size-by-sector}
+
+`amex`는 상대적으로 비중이 적어 제외하고 분야(sector)별로 상장수가 어떻게 분포되어 있는지 확인한다.
+
+```{r listing-size-by-sector}
+data_sector_df <- data_df %>% 
+  filter(!str_detect(exchange, "amex")) 
+
+data_sector_df %>% 
+  group_by(exchange, sector) %>% 
+  summarise(cnt= n()) %>% 
+  spread(exchange, cnt) %>% 
+  mutate(total = nasdaq + nyse,
+         nyse_pcnt = nyse / total) %>% 
+  DT::datatable() %>% 
+    DT::formatPercentage("nyse_pcnt", digits = 1)
+```
+
+
+## 거래소 시가총액 {#listing-market-cap-by-sector}
+
+시가총액을 백만달러로 변환시킨 `market_cap_m` 변수를 분야(`sector`)와 조합하여 가장 비중이 많은 분야를 거래소와 교차하여 확인한다.
+
+```{r market-cap-by-sector}
+data_sector_df %>% 
+  group_by(exchange, sector) %>% 
+  summarise(market_cap = sum(market_cap_m)) %>% 
+  spread(exchange, market_cap) %>% 
+  mutate(total = nasdaq + nyse,
+         nyse_pcnt = nyse / total) %>% 
+  DT::datatable() %>% 
+  DT::formatRound(c("nasdaq", "nyse", "total"), digits = 0) %>% 
+  DT::formatPercentage("nyse_pcnt", digits = 1)
+```
+
+
+# 주식 데이터 {#listing-stock-data}
+
+[`quantmod`](https://github.com/joshuaulrich/quantmod) 팩키지로부터 관심있는 주식에 대한 주식 종명명 약칭(stock symbol)을 찾아 바로 거래가격을 확인할 수 있다.
+
+## `quantmod` 헬로월드 {#listing-stock-data-hello-world}
+
+`quantmod` 팩키지를 통해 주식 거래 데이터를 가져올 수 있다.
+구글 금융(Google finance)은 2018년 3월 이후 서비스를 중단(`Google Finance stopped providing data in March, 2018.`)해서 대안으로 야후 금융(yahoo finance)에서 데이터를 가져온다.
+
+`quantmod` 팩키지 시계열 데이터는 `OHLC` (Open, Hi, Lo and Close)를 담고 있기 때문에 다음 두가지 방식으로 데이터를 가져와서 분석에 사용할 수 있다.
+
+```{r market-cap-stock-data}
+# remotes::install_github("joshuaulrich/quantmod")
+library(quantmod)
+
+# exchange_env <- new.env()
+
+getSymbols("AAPL", src = "yahoo", from = as.Date("2018-01-01"), to = Sys.Date())
+
+head(AAPL$AAPL.Close)
+
+head(Cl(AAPL))
+```
+
+## 기술 섹터 상위 5사  {#listing-stock-data-tech-five-company}
+
+기술 섹터(Sector) 시가총액 비중이 높은 회사 5개를 추출하여 `ggplot()`으로 시각화한다. 이를 위해서 다음 단계를 거친다.
+
+1. 상장사 목록에서 기술 섹터를 추출하여 시가총액 5개사를 추출한다.
+1. `quantmod` 팩키지에서 `getSymbols()` 함수로 "2010-01-01" 부터 최근까지 주가데이터를 가져온다.
+1. `zoo` 자료형을 데이터프레임으로 변환시킨다.
+1. `ggplot()` 그래프로 시각화한다.
+
+
+```{r market-cap-stock-wrangling}
+library(extrafont)
+loadfonts()
+
+top_stocks <- data_sector_df %>% 
+  filter(sector == "Technology") %>% 
+  top_n(6, wt=market_cap_m) %>% 
+  pull(symbol) %>% 
+  setdiff("GOOGL")
+
+for(stock in seq_along(top_stocks)) {
+  getSymbols(top_stocks[stock], src = "yahoo", 
+           from = as.Date("2010-01-01"), to = Sys.Date(), auto.assign=TRUE)
+  # assign(top_stocks[stock], getSymbols(top_stocks[stock], src = "yahoo", 
+  #            from = as.Date("2018-01-01"), to = Sys.Date(), auto.assign=FALSE))
+}
+
+top_stocks_xts <- merge(GOOG, FB, INTC, MSFT, AAPL)
+
+top_stocks_df <- data.frame(date=index(top_stocks_xts), coredata(top_stocks_xts))
+
+top_stocks_df %>% 
+  select(date, contains("Close")) %>% 
+  gather(`회사`, `주가`, -date) %>% 
+  mutate(`회사` = str_remove(`회사`, ".Close")) %>% 
+  ggplot(aes(x=date, y=`주가`, color=`회사`)) +
+    geom_line() +
+    scale_y_sqrt(labels = scales::comma) +
+    scale_x_date(date_labels = "%y-%m") +
+    labs(x="", y="주가", title="시가총액 상위 5개사 최근 1년 주가추이",
+         subtitle="기술 Sector") +
+    theme_minimal(base_family = "NanumGothic")
+
+```
+
