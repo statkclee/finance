@@ -10,6 +10,8 @@ output:
     code_folding: show
     number_sections: TRUE
 mainfont: NanumGothic
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -51,7 +53,7 @@ unclass(x)
 unclass(as.Date("1970-01-03"))
 ```
 
-## 날짜 자료형 확인 {#coursera-time-and-date-class}
+## 시간(time) 자료형 확인 {#coursera-time-and-date-class}
 
 `Sys.time()` 함수를 통해 현재 시스템 시간정보를 받아내면 `POSIXct` 클래스임이 확인되고,
 `unclass()` 정보를 통해 내부적으로 정수값으로 저장된 것이 확인된다.
@@ -131,6 +133,60 @@ y - x
 > - 특정 애플리케이션에서의 필요성으로, 표준에서는 표현 내에서의 가장 작은 단위의 시간 값에 십진수 기반의 분수를 지원하고 있다.
 
 [^iso-8601]: [위키피디아 - ISO 8601](https://ko.wikipedia.org/wiki/ISO_8601)
+
+## `anytime` 팩키지 {#anytime-package}
+
+ [`anytime`, "anytime: Easier Date and Time Conversion"](https://github.com/eddelbuettel/anytime/): 문자열을 받아 날짜/시간 자료형으로 변환하는데 특화되어 있다.
+ 
+```{r anytime-abc}
+library(anytime)
+library(tidyverse)
+
+options(digits.secs=6)                ## for fractional seconds below
+Sys.setenv(TZ=anytime:::getTZ())      ## 시간대 
+
+anytime:::getTZ()
+
+anydate(20160101 + 0:2, tz=anytime:::getTZ())
+```
+ 
+## `fasttime` 팩키지 {#anytime-package}
+
+ [`fasttime`, "fasttime: Fast Utility Function for Time Parsing and Conversion"](https://github.com/eddelbuettel/anytime/): 문자열을 받아 날짜/시간 자료형으로 정말 빠르게 변환하는데 특화되어 있다. 이런 경우 문자열이 가능하면 `ISO 8601`에 맞춰 준비되어야 된다.
+
+마이크로 초단위 날짜/시간 데이터를 10,000개 생성시키고 나서 다음 방식으로 파싱해서 자료형을 변환시키는데 소요되는 시간을 비교해보자.
+
+- `lubridate`: `ymd_hms()`
+- `base`: `as.POSIXct()`
+- `fasttime`: `fastPOSIXct()`
+- `lubridate`: `fast_strptime()`
+
+`fasttime` 팩키지는 더이상 유지보수 되고 있지 않고, 이 팩키지를 바탕으로 `lubridate`에서 기능을 흡수하여 명실공히 속도와 편의성을 모두 장착한 시간/날짜 데이터를 다루는 막강한 팩키지로 거듭났습니다. 
+
+```{r fasttime-abc}
+library(lubridate)
+library(fasttime)
+
+## 0. 난수 날짜/시간 생성
+ts <- as.character(.POSIXct(runif(1e4) * unclass(Sys.time()), tz="Asia/Seoul"))
+
+microbenchmark::microbenchmark(
+  ## 1. lubridate로 자료형 변환
+  lubridate_ts = ymd_hms(ts, tz="Asia/Seoul"),
+  
+  ## 2. as.POSIXct로 자료형 변환
+  POSITct_ts = as.POSIXct(ts, tz="Asia/Seoul"),
+  
+  ## 3. fastPOSIXct로 자료형 변환
+  fasttime_ts = fastPOSIXct(ts, tz="Asia/Seoul"),
+  
+  ## 4. fast lubridate로 자료형 변환
+  fast_lubridate_ts = fast_strptime(ts, tz="Asia/Seoul", format="%Y-%m-%d %H:%M:%OS"),
+  times = 30
+)
+
+```
+
 
 
 # 시간데이터 다루기 {#time-and-date-data-manipulation}
