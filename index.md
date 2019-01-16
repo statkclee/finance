@@ -56,6 +56,7 @@ title: 금융(Finance)
         - [(美)상장사 목록 &rarr; 주가](financial-listing-to-stock.html)
     - [재무제표(Financial Statement)](financial-report.html)
     - [채권](financial-bond.html)
+    - [S&P 신용등급](finance-credit-rating.html)
 
 
 ### [xwMOOC 오픈 교재](https://statkclee.github.io/xwMOOC/)

@@ -1,0 +1,190 @@
+---
+layout: page
+title: 데이터 과학 -- 금융(Finance)
+subtitle: "S&P 신용등급"
+author:
+    name: xwMOOC
+    url: https://www.facebook.com/groups/tidyverse/
+    affiliation: Tidyverse Korea
+date: "`r Sys.Date()`"
+output:
+  html_document: 
+    toc: yes
+    toc_float: true
+    highlight: tango
+    code_folding: show
+    number_section: true
+    self_contained: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
+                      comment="", digits = 3, tidy = FALSE, prompt = FALSE, fig.align = 'center')
+```
+
+
+# 국가 신용등급 {#snp-credit-rating}
+
+위키백과사전에서 [List of countries by credit rating](https://en.wikipedia.org/wiki/List_of_countries_by_credit_rating) 데이터를 다운로드 받는다.
+
+## S&P 국가 신용등급 {#snp-credit-rating}
+
+Standard & Poor's (S&P)에서는 `BBB-`이상이 투자등급, `BB+`이하는 투기등급으로 정의한다.
+
+```{r get-snp-rating-data}
+library(tidyverse)
+library(rvest)
+library(janitor)
+
+rating_url <- "https://en.wikipedia.org/wiki/List_of_countries_by_credit_rating"
+
+snp_dat <- rating_url %>% 
+  read_html() %>% 
+  html_node(xpath='//*[@id="mw-content-text"]/div/table[1]') %>% 
+  html_table() %>% 
+  tbl_df
+
+snp_df <- snp_dat %>% 
+  clean_names() %>% 
+  rename(country = country_region) %>% 
+  separate(rating, into=c("tmp", "rating"), sep=" ") %>% 
+  select(country, date, outlook, rating) %>% 
+  mutate(date = lubridate::ymd(date)) %>% 
+  mutate(rating = factor(rating, levels = c("AAA","AA+","AA","AA-","A+","A","A-","BBB+","BBB","BBB-","BB+","BB","BB-","B+","B","B-","CCC+","D","SD")))
+
+snp_df %>% 
+  DT::datatable()
+```
+
+앞서 신용등급변수(`rating`)을 요인(factor) 변수로 변환시켰기 때문에 가장 높은 등급부터 가장 낮은 등급까지 자연스럽게 `rating` 등급표를 쉽게 작성할 수 있따.
+
+```{r get-snp-rating-data-distribution}
+snp_df %>% 
+  count(rating)
+```
+
+## 피치 국가 신용등급 {#moodys-credit-rating}
+
+피치 (Fitch)에서는 `BBB-` 이상이 투자등급, `BB+`이하는 투기등급으로 정의한다.
+
+```{r get-fitch-rating-data}
+fitch_dat <- rating_url %>% 
+  read_html() %>% 
+  html_node(xpath='//*[@id="mw-content-text"]/div/table[2]') %>% 
+  html_table() %>% 
+  tbl_df
+
+fitch_df <- fitch_dat %>% 
+  clean_names() %>% 
+  rename(country = country_region) %>% 
+  mutate(rating = str_remove_all(rating, "[0-9]")) %>% 
+  select(country, date, outlook, rating) %>% 
+  mutate(date = lubridate::ymd(date)) %>% 
+  mutate(rating = factor(rating, levels = c("AAA","AA+","AA","AA-","A+","A","A-","BBB+","BBB","BBB-","BB+","BB","BB-","B+","B","B-","CCC+","D","SD")))
+
+fitch_df %>% 
+  DT::datatable()
+```
+
+앞서 신용등급변수(`rating`)을 요인(factor) 변수로 변환시켰기 때문에 가장 높은 등급부터 가장 낮은 등급까지 자연스럽게 `rating` 등급표를 쉽게 작성할 수 있따.
+
+```{r get-fitch-rating-data-distribution}
+fitch_df %>% 
+  count(rating)
+```
+
+## Dagong 국가 신용등급 {#moodys-credit-rating}
+
+Dagong은 2018년  China Securities Regulatory Commission (CSRC)에 의해서 영업정지된 것으로 나타난다.
+
+```{r get-dagong-rating-data}
+dagong_dat <- rating_url %>% 
+  read_html() %>% 
+  html_node(xpath='//*[@id="mw-content-text"]/div/table[7]') %>% 
+  html_table() %>% 
+  tbl_df
+
+dagong_df <- dagong_dat %>% 
+  clean_names() %>% 
+  mutate(rating = str_remove_all(rating, "[0-9]")) %>% 
+  select(country, date, outlook, rating) %>% 
+  mutate(date = if_else(str_length(date) <=8, parse_date(date, "%Y-%m"), lubridate::ymd(date))) %>% 
+  mutate(rating = factor(rating, levels = c("AAA","AA+","AA","AA-","A+","A","A-","BBB+","BBB","BBB-","BB+","BB","BB-","B+","B","B-","CCC+","D","SD")))
+
+dagong_df %>% 
+  DT::datatable()
+```
+
+
+앞서 신용등급변수(`rating`)을 요인(factor) 변수로 변환시켰기 때문에 가장 높은 등급부터 가장 낮은 등급까지 자연스럽게 `rating` 등급표를 쉽게 작성할 수 있따.
+
+```{r get-dagong-rating-data-distribution}
+dagong_df %>% 
+  count(rating)
+```
+
+## 신용기관 등급 비교 {#credit-agendy-rating-comparison}
+
+S&P, 무디스, Dagong 신용평가사 국가신용등급을 취합한다.
+
+```{r credit-rating-comparison}
+snp_comp_df <- snp_df %>% 
+  mutate(agency="S&P") %>% 
+  rename(snp = rating) %>% 
+  select(country, snp)
+
+fitch_comp_df <- fitch_df %>% 
+  mutate(agency="Fitch") %>% 
+  rename(fitch = rating) %>% 
+  select(country, fitch)
+
+dagong_comp_df <- dagong_df %>% 
+  mutate(agency="Dagong") %>% 
+  rename(dagong = rating) %>% 
+  select(country, dagong)
+
+rating_dat <- full_join(snp_comp_df, fitch_comp_df) %>% 
+  full_join(dagong_comp_df)
+
+rating_dat %>% 
+  DT::datatable()
+
+```
+
+
+앞서 신용등급변수(`rating`)을 요인(factor) 변수로 변환시켰기 때문에 가장 높은 등급부터 가장 낮은 등급까지 자연스럽게 `rating` 등급표를 쉽게 작성할 수 있다.
+
+
+```{r get-all-rating-data-distribution}
+rating_df <- rating_dat %>% 
+  filter(complete.cases(.))
+
+rating_df %>% 
+  gather(agency, rating, -country) %>% 
+  count(rating, agency) %>% 
+  mutate(rating = factor(rating, levels = c("AAA","AA+","AA","AA-","A+","A","A-","BBB+","BBB","BBB-","BB+","BB","BB-","B+","B","B-","CCC+","D"))) %>% 
+  spread(agency, n)
+```
+
+신용등급별로 신용평가사 평가한 국가별 빈도를 막대그래프로 시각화한다.
+
+```{r get-all-rating-data-distribution-viz}
+library(extrafont)
+loadfonts()
+
+rating_df %>% 
+  gather(agency, rating, -country) %>% 
+  count(rating, agency) %>% 
+  mutate(rating = factor(rating, levels = c("AAA","AA+","AA","AA-","A+","A","A-","BBB+","BBB","BBB-","BB+","BB","BB-","B+","B","B-","CCC+","D"))) %>% 
+  ggplot(aes(x=fct_rev(rating), y=n, fill=agency)) +
+    geom_col(position="dodge") +
+    labs(x="", y="국가수", fill="신용평가사", title="신용평가사가 평가한 국가별 신용등급 분포") +
+    theme(legend.position = "top") +
+    theme_minimal(base_family = "NanumGothic") +
+    geom_vline(xintercept = 7, color="red", linetype="dashed") +
+    coord_flip()  +
+    scale_fill_manual(values = c("blue", "red", "green"))
+```
+
