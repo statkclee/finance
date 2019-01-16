@@ -25,7 +25,7 @@ knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
 ```
 
 
-# 국가 신용등급 {#snp-credit-rating}
+# 국가 신용등급 {#credit-rating}
 
 위키백과사전에서 [List of countries by credit rating](https://en.wikipedia.org/wiki/List_of_countries_by_credit_rating) 데이터를 다운로드 받는다.
 
@@ -95,7 +95,7 @@ fitch_df %>%
   count(rating)
 ```
 
-## Dagong 국가 신용등급 {#moodys-credit-rating}
+## Dagong 국가 신용등급 {#dagong-credit-rating}
 
 Dagong은 2018년  China Securities Regulatory Commission (CSRC)에 의해서 영업정지된 것으로 나타난다.
 
@@ -183,7 +183,7 @@ rating_df %>%
     labs(x="", y="국가수", fill="신용평가사", title="신용평가사가 평가한 국가별 신용등급 분포") +
     theme(legend.position = "top") +
     theme_minimal(base_family = "NanumGothic") +
-    geom_vline(xintercept = 7, color="red", linetype="dashed") +
+    geom_vline(xintercept = 7.5, color="red", linetype="dashed") +
     coord_flip()  +
     scale_fill_manual(values = c("blue", "red", "green"))
 ```
