@@ -1,0 +1,137 @@
+---
+layout: page
+title: 데이터 과학 -- 금융(Finance)
+subtitle: "상장사 기업신용등급"
+author:
+    name: xwMOOC
+    url: https://www.facebook.com/groups/tidyverse/
+    affiliation: Tidyverse Korea
+date: "`r Sys.Date()`"
+output:
+  html_document: 
+    toc: yes
+    toc_float: true
+    highlight: tango
+    code_folding: show
+    number_section: true
+    self_contained: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
+                      comment="", digits = 3, tidy = FALSE, prompt = FALSE, fig.align = 'center')
+```
+
+
+# 상장사 기업 신용등급 [^hankyung-news] {#listing-finance}
+
+[^hankyung-news]: [한국경제 (2017.01.18 18:57), "기업 신용등급과 '따로 노는' 주가"](http://news.hankyung.com/article/2017011839411)
+
+상장사 기업신용등급 데이터를 구할 수 있는 곳은 다음과 같다.
+
+- 키스밸류(유료): [KISVALUE](https://www.kisvalue.com/web/index.jsp)
+- 금융감독원 다트: [금융감독원 다트](http://dart.fss.or.kr/)
+- 금융감독원 신용평가서: [신용평가서](http://www.fss.or.kr/fss/kr/bsn/cad/cad_rpt_l.jsp?fbclid=IwAR2fZMGEGCbfG5S54btwHOj3cmKueLFC6yK0U6FP7uy9im_-ChODbERJR_c)
+- [http://mts.kisline.com/paxnet/entr/homeEntr.nice?mtskey=DvaF%2BAgGg2IUoeIwJx6g2A%3D%3D&stockcd=064760&fbclid=IwAR3jTM8RckgVUEFIKcOEXIeam611fA7uYiDDHPgvodZdpaiNdtGYnPpsuEA](http://mts.kisline.com/paxnet/entr/homeEntr.nice?mtskey=DvaF%2BAgGg2IUoeIwJx6g2A%3D%3D&stockcd=064760&fbclid=IwAR3jTM8RckgVUEFIKcOEXIeam611fA7uYiDDHPgvodZdpaiNdtGYnPpsuEA)
+
+
+# 데이터 가져오기 {#listing-credit-data}
+
+## 재무정보 &rarr; 주가와 컨센서스 {#listing-credit-data-concensus} 
+
+[http://mts.kisline.com/paxnet/entr/homeEntr.nice?mtskey=DvaF%2BAgGg2IUoeIwJx6g2A%3D%3D&stockcd=064760&fbclid=IwAR3jTM8RckgVUEFIKcOEXIeam611fA7uYiDDHPgvodZdpaiNdtGYnPpsuEA](http://mts.kisline.com/paxnet/entr/homeEntr.nice?mtskey=DvaF%2BAgGg2IUoeIwJx6g2A%3D%3D&stockcd=064760&fbclid=IwAR3jTM8RckgVUEFIKcOEXIeam611fA7uYiDDHPgvodZdpaiNdtGYnPpsuEA) 웹사이트 구조를 파악하고 나서 기업 한 곳 `재무정보` &rarr; `주가와 컨센서스 (2019년 01월 16일 기준)` 데이터를 가져온다.
+
+```{r import-listing-data-concensus}
+library(tidyverse)
+library(rvest)
+
+Sys.setlocale("LC_ALL", "C")
+
+ksline_fncr_url <- "http://mts.kisline.com/paxnet/fncr/homeFncr.nice?mtskey=DvaF%2BAgGg2IUoeIwJx6g2A%3D%3D&stockcd=064760&fbclid=IwAR3jTM8RckgVUEFIKcOEXIeam611fA7uYiDDHPgvodZdpaiNdtGYnPpsuEA"
+
+stock_price_concensus_dat <- ksline_fncr_url %>% 
+  read_html() %>% 
+  html_nodes(xpath='//*[@id="contents"]/table[2]') %>% 
+  html_table() %>% 
+  .[[1]]
+
+Sys.setlocale("LC_ALL", "Korean")
+
+stock_price_concensus_part1 <- stock_price_concensus_dat %>% 
+  select(X1, X2) %>% 
+  rename(key=X1, value=X2)
+  
+stock_price_concensus_part2 <- stock_price_concensus_dat %>% 
+  select(X3, X4) %>% 
+    rename(key=X3, value=X4)
+
+stock_price_concensus_df <- bind_rows(stock_price_concensus_part1, stock_price_concensus_part2)
+
+stock_price_concensus_df %>% 
+  mutate(company = 064760)
+```
+
+
+## 재무정보 &rarr; 주가와 컨센서스 (전체) {#listing-credit-data-concensus-all} 
+
+앞서 제작한 코드를 함수로 만들어 업체코드를 넣으면 `재무정보` &rarr; `주가와 컨센서스 (2019년 01월 16일 기준)` 데이터 반환시키는 함수를 제작한다.
+
+```{r import-listing-data-concensus-function}
+
+stock_code <- c("000020", "000030", "000060")
+
+get_concensus <- function(stock_code) {
+
+  Sys.setlocale("LC_ALL", "C")
+
+  ksline_fncr_url <- paste0("http://mts.kisline.com/paxnet/fncr/homeFncr.nice?mtskey=DvaF%2BAgGg2IUoeIwJx6g2A%3D%3D&stockcd=", stock_code, "&fbclid=IwAR3jTM8RckgVUEFIKcOEXIeam611fA7uYiDDHPgvodZdpaiNdtGYnPpsuEA")
+  
+  stock_price_concensus_dat <- ksline_fncr_url %>% 
+    read_html() %>% 
+    html_nodes(xpath='//*[@id="contents"]/table[2]') %>% 
+    html_table() %>% 
+    .[[1]]
+  
+  Sys.setlocale("LC_ALL", "Korean")
+  
+  stock_price_concensus_part1 <- stock_price_concensus_dat %>% 
+    select(X1, X2) %>% 
+    rename(key=X1, value=X2)
+    
+  stock_price_concensus_part2 <- stock_price_concensus_dat %>% 
+    select(X3, X4) %>% 
+      rename(key=X3, value=X4)
+  
+  stock_price_concensus_df <- bind_rows(stock_price_concensus_part1, stock_price_concensus_part2) %>% 
+    mutate(company = stock_code)
+  
+  return(stock_price_concensus_df)
+}
+
+get_concensus(stock_code[1])
+```
+
+이제 `for` 문을 돌려 리스트로 3개업체에 대한 데이터를 가져온다.
+
+```{r import-listing-data-concensus-function-run}
+concensus_list <- list()
+
+for(i in 1:length(stock_code)) {
+  concensus_list[[i]] <- get_concensus(stock_code[i])
+}
+
+listviewer::jsonedit(concensus_list)
+```
+
+데이터 분석을 위해 데이터프레임으로 변환작업을 수행한다.
+
+```{r import-listing-data-concensus-function-dataframe}
+concensus_df <- tibble(stock_code = stock_code,
+       concensus = concensus_list)
+
+concensus_df %>% 
+  unnest(concensus) %>% 
+  DT::datatable()
+```
