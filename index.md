@@ -33,6 +33,7 @@ title: 금융(Finance)
         - [날짜/시간 데이터 - lubridate](data-handling-timendate.html)
         - [불규칙 시계열 데이터](ds-irregular-time-series.html)         
     - [시계열 데이터 다루기- padr, tibbletime](stat-time-series-basics.html)
+    - [`tidyverts` - 시계열 분석을 위한 R 팩키지]](finance-tidyverts.html)
 - **시계열 데이터 살펴보기**
     - [탐색적 시계열 데이터 분석](stat-time-series-eda.html)
     - [시계열 예측 성능기준(benchmark)](stat-time-series-benchmark.html)
