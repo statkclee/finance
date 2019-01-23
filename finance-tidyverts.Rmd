@@ -129,3 +129,71 @@ flights_tsbl <- flights %>%
   )
 flights_tsbl
 ```
+
+
+# 시계열 애니메이션 {#tidyverts-hello-world-tsibble}
+
+공항별(`dplyr`) 월별(`tsibble`) 온도변화(`ggplot`) 애니메이션(`gganimate`)을 조합하여 
+순차적으로 파이프에 연결시키게 되면 월별 혹은 경우에 따라서는 일별 시각화 애니메이션을 수월하게 작성시킬 수 있다.
+
+```{r tsibble-tidyverts-animation}
+library(gganimate)
+library(lubridate)
+library(extrafont)
+loadfonts()
+
+weather_tsbl %>%
+  group_by(origin) %>%
+  index_by(date = month(time_hour)) %>% 
+  summarise(
+    temp_high = max(temp, na.rm = TRUE),
+    temp_mean = mean(temp, na.rm = TRUE),
+    temp_low = min(temp, na.rm = TRUE)
+  )  %>% 
+  ggplot(aes(x=date, y=temp_mean, group = origin, color=origin)) + 
+    geom_line() + 
+    geom_point(size = 2) + 
+    transition_reveal(date) +
+    geom_text(aes(x = 13, label = origin), hjust = 0) +
+    geom_segment(aes(xend = 13, yend = temp_mean), linetype = 2, colour = 'grey') +
+    coord_cartesian(clip = 'off') + 
+    labs(title = '뉴욕 공항 2013년 온도변환', y = '화씨 온도 (°F)',
+         x="2013년 월",
+         subtitle = '공항별(dplyr) 월별(tsibble) 온도변화(ggplot) 애니메이션(gganimate)') + 
+    theme_minimal(base_family = "NanumGothic") + 
+    theme(legend.position = "none")
+    
+```
+
+
+## 이동평균 시계열 애니메이션 {#tidyverts-hello-world-tsibble-ma}
+
+`tsibble` 팩키지 `purrr` 함수형 프로그래밍 기법을 적용하여 시계열 데이터에 이동평균을 계산하여 이를 시각화할 수 있다. 월별 이동평균(`.size = 30`)을 계산하여 앞서 개발한 애니메이션에 파이프로 연결시켜 애니메이션 시각화를 구현시킨다.
+
+
+```{r tsibble-tidyverts-animation-ma}
+weather_tsbl %>%
+  filter(origin == "JFK") %>%
+  index_by(date = yday(time_hour)) %>% 
+  summarise(
+    temp_mean = mean(temp, na.rm = TRUE),
+  ) %>% 
+  mutate(ma_monthly = slide_dbl(temp_mean, ~ mean(.), .size = 30)) %>% 
+  ggplot(aes(x=date, y=temp_mean)) + 
+    geom_line() + 
+    geom_point(size = 2) + 
+    geom_point(aes(x=date, y=ma_monthly, size = 2), color="red") + 
+    geom_line(aes(x=date, y=ma_monthly, color="red"), size=1.5) +
+    geom_text(aes(x = 365, label = temp_mean), hjust = 0) +
+    geom_segment(aes(xend = 365, yend = temp_mean), linetype = 2, colour = 'grey') +
+    geom_text(aes(x = 365, y=ma_monthly, label = ma_monthly), hjust = 0) +
+    geom_segment(aes(xend = 365, y=ma_monthly, yend = ma_monthly), linetype = 2, colour = 'red') +
+    transition_reveal(date) +
+    coord_cartesian(clip = 'off') + 
+    labs(title = '뉴욕 공항 2013년 온도변환', y = '화씨 온도 (°F)',
+         x="2013년 일별",
+         subtitle = '공항별(dplyr) 일별(tsibble) 온도변화(ggplot) 애니메이션(gganimate)') + 
+    theme_minimal(base_family = "NanumGothic") + 
+    theme(legend.position = "none")
+
+```
