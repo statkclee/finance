@@ -1,0 +1,131 @@
+---
+layout: page
+title: 데이터 과학 -- 금융(Finance)
+subtitle: "금융 시계열 시각화 - `hichart`/조선산업"
+author:
+    name: xwMOOC
+    url: https://www.facebook.com/groups/tidyverse/
+    affiliation: Tidyverse Korea
+date: "`r Sys.Date()`"
+output:
+  html_document: 
+    toc: yes
+    toc_float: true
+    highlight: tango
+    code_folding: show
+    number_section: true
+    self_contained: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
+                      comment="", digits = 3, tidy = FALSE, prompt = FALSE, fig.align = 'center')
+```
+
+
+# 금융 시계열 데이터 시각화 {#finance-time-series-viz}
+
+금융 시계열 데이터로 기본 자료구조를 `xts`로 두는 경우와 데이터프레임 `tibble`로 두는 경우가 있다.
+두가지 데이터 모두 시계열 금융데이터를 표현할 때 장단점이 있는 것도 사실이다.
+
+[`highcharts`](https://www.highcharts.com/)는 자바스크립트 라이브러리로 `htmlwidgets`으로 R에서 
+`wrapping`시킨 highcharter](http://jkunst.com/highcharter/) 팩키지를 사용해서 금융 시계열 데이터를 
+몇줄로 인터랙티브 시각화 제품을 개발할 수 있다.
+
+<div class = "row">
+  <div class = "col-md-6">
+**`xts` 자료구조**
+
+`hchart()`
+
+  </div>
+  <div class = "col-md-6">
+**데이터프레임 `tibble` 자료구조**
+
+`highchart()`
+
+  </div>
+</div>
+
+
+# 조선업 주식 데이터 {#finance-time-series-dataset-ship}
+
+[나무위키 - 조선업](https://namu.wiki/w/%EC%A1%B0%EC%84%A0%EC%97%85)에 따르면 대형 조선 3사외에도 중소조선업체가 다음과 같이 있다.
+
+|   업체명     |   업체코드 |
+|--------------|------------|
+| 현대중공업   | 009540     |
+| 대우조선해양 | 042660     |
+| 삼성중공업   | 010140     |
+| 현대미포조선 | 010620     |
+| 한진중공업   | 097230     |
+| STX조선해양  |  없음      |
+| SPP조선      |  없음      |
+| 성동조선해양 |  없음      |
+| 대한조선     |  없음      |
+| 대선조선     |  없음      |
+
+야후 금융(Finance)에서 `quantmod` 팩키지에서 `xts` 자료구조로 "2018-01-01"부터 `r Sys.Date()`까지 가져온다.
+`xts` 데이터를 조작하기 쉬운 형태 데이터프레임으로 변화시키고 종가(Close)만 데이터를 준비한다.
+
+
+```{r viz-hichart-data}
+library(tidyverse)
+library(highcharter)
+library(quantmod)
+
+ship_code <- c("009540.KS","042660.KS","010140.KS","010620.KS","097230.KS")
+
+getSymbols(ship_code, src = "yahoo", from = as.Date("2018-01-01"), to = Sys.Date(), auto.assign = TRUE)
+
+ship_xts <- merge(`009540.KS`, `010140.KS`, `010620.KS`, `042660.KS`, `097230.KS`)
+
+ship_stock_df <- data.frame(date=index(ship_xts), coredata(ship_xts)) %>% 
+  tbl_df() %>% 
+  select(`일자`=date, contains("Close")) %>% 
+  gather(`회사명`, `종가`, -`일자`) %>% 
+  mutate(`회사명` = case_when(str_detect(`회사명`, "009540") ~ "현대중공업",
+                              str_detect(`회사명`, "042660") ~ "대우조선해양",
+                              str_detect(`회사명`, "010140") ~ "삼성중공업",
+                              str_detect(`회사명`, "010620") ~ "현대미포조선",
+                              str_detect(`회사명`, "097230") ~ "한진중공업")) %>% 
+  mutate(`회사명` = factor(`회사명`, levels = c("현대중공업","현대미포조선",  "대우조선해양", "삼성중공업", "한진중공업")))
+
+ship_stock_df %>% 
+  sample_n(100) %>% 
+  DT::datatable()
+```
+
+
+
+
+
+
+
+
+
+
+# `highcharter` 시각화 {#finance-time-series-dataset-viz}
+
+`ship_stock_df` 데이터프레임을 `hchart()` 함수를 `hc_` 문법에 맞춰 순차적으로 만들어 나간다.
+특히 `hc_tooltip`을 사용해서 축서식과 범례도 경우에 따라 제어할 수 있도록 하여 시각화 시킨다.
+
+
+```{r viz-hichart, fig.width=12}
+ship_stock_df %>% 
+  hchart(hcaes(x=`일자`, y=`종가`, group=`회사명`), type="line") %>% 
+  hc_title(text = "상장된 조선업체 주가") %>%
+  hc_subtitle(text = paste0("2018-01-01 부터 ", Sys.Date())) %>% 
+  hc_tooltip(shared = TRUE,
+             crosshairs = TRUE,
+             headerFormat = '{point.일자} <br>',
+             pointFormat = '+ {point.회사명}: {point.y:, .0f} <br>') %>% 
+  hc_yAxis(title = list(text = "종가"), 
+           labels = list(format = "{value:,.0f}"),
+           opposite = FALSE) %>% 
+  hc_legend(enabled = TRUE)
+```
+
+

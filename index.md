@@ -33,10 +33,12 @@ title: 금융(Finance)
         - [날짜/시간 데이터 - lubridate](data-handling-timendate.html)
         - [불규칙 시계열 데이터](ds-irregular-time-series.html)         
     - [시계열 데이터 다루기- padr, tibbletime](stat-time-series-basics.html)
-    - [`tidyverts` - 시계열 분석을 위한 R 팩키지]](finance-tidyverts.html)
+    - [`tidyverts` - 시계열 분석을 위한 R 팩키지](finance-tidyverts.html)
 - **시계열 데이터 살펴보기**
     - [탐색적 시계열 데이터 분석](stat-time-series-eda.html)
     - [시계열 예측 성능기준(benchmark)](stat-time-series-benchmark.html)
+- **시계열 데이터 시각화**
+    - [금융 시계열 시각화 - `hichart`/조선산업](finance-viz-hichart.html)
 - **시계열 모형 - 단일모형**
     - [태양흑점수(sunspot) 예측](finance-time-series-sunspot.html)
     - [시계열 모형 식별 도구 - 자기상관, 승법, 가법, 분해 ...](stat-time-series-tools.html)
