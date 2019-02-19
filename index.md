@@ -35,6 +35,7 @@ title: 금융(Finance)
     - [시계열 데이터 다루기- padr, tibbletime](stat-time-series-basics.html)
     - [`tidyverts` - 시계열 분석을 위한 R 팩키지](finance-tidyverts.html)
     - [시계열 데이터 자료구조 - `tsibble`, `zoo/xts`, `lubridate` ](finance-ts-ds.html)
+        - [시계열 데이터 자료구조 - `zoo/xts`](finance-ts-xts.html)
 - **시계열 데이터 살펴보기**
     - [탐색적 시계열 데이터 분석](stat-time-series-eda.html)
     - [시계열 예측 성능기준(benchmark)](stat-time-series-benchmark.html)
