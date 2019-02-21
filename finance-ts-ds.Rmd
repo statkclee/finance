@@ -36,4 +36,93 @@ R에서 시계열 데이터를 처리하기 위한 전용 자료구조로 [`zoo`
 
 [^tsibble-vignette]: [Earo Wang, "Introduction to tsibble - Vignette"](https://cran.r-project.org/web/packages/tsibble/vignettes/intro-tsibble.html)
 
+tsibble(`tbl_ts`)은 티블(tibble) `tidyverse`의 시계열 자료구조를 확장한 것으로 제작되었고. `ts`, `zoo`, `xts`와 비교하여 볼 때 시간 인덱스를 본질적인 데이터 칼럼으로 둠으로써 이질적인 자료구조 처리를 내재적으로 가능하게 제작되었고 변수 하나 혹은 그 이상으로 구성된 "Key" 개념을 도입해서 시간 흐름에 따라 관측점 단위별로 식별이 가능하게 만들었다.
 
+## `tsibble` 객체 생성 {#time-series-tsibble-create}
+
+
+`tsibble()` 함수로 `tsibble` 객체를 생성시킬 수 있을 뿐만 아니라 `as_tsibble()` 함수는 S3 메쏘드로 다른 객체를 `tsibble` 객체로 강제변환(coerce)시킨다. `ts`, `mts` 객체는 `as_tsibble()`함수로 `tsibble` 객체를 별도 다른 설정없이 강제변환이 가능한 반면, 티블 혹은 데이터프레임의 경우 인덱스(index)와 키(key) 변수를 식별하기 위해서 추가 작업이 다소 필요하다.
+
+```{r tsibble-setup}
+library(tidyverse)
+library(tsibble)
+library(lubridate)
+
+weather <- nycflights13::weather %>% 
+  select(origin, time_hour, temp, humid, precip)
+weather
+```
+
+
+`nycflights13::weather` 자료형은 티블로 시간변수는 `time_hour`가 되고, 3개 변수 `temp`, `humid`, `precip`은 관측변수가 되고, `origin`은 관측지점이 된다. `tsibble` 자료형을 설명하기 적합한 요소를 두루갖추고 있다.
+티블/데이터프레임을 `tsibble` 객체로 변환시킬 경우 `index=` 인자로 시계열 정보를 담고 있는 변수를 지정하고 `key=` 인자를 통해 관측단위 변수를 지정시킨다. 이를 통해서 관측점(행)을 관측단위별 시계열 자료구조로 준비가 완료되었다. `tsibble` 객체가 생성되면서 내부적으로 키가 있는 경우 키를 기준값으로 정렬이 일차적으로 일어나고 인덱스를 기준으로 다시 한번 정렬된다. 키가 없는 경우 인덱스를 기준으로 정렬된다. 
+
+```{r tsibble-coerce}
+weather_tsbl <- as_tsibble(weather, index=time_hour, key=id(origin))
+weather_tsbl
+```
+
+`tsibble` 객체는 자동으로 시계열 기간에 대한 정보를 인식하여 반영시킨다.
+
+- integer/numeric: 단위(unit) 혹은 연도(Y)
+- yearquarter/yearqtr: 분기(Q)
+- yearmonth/yearmon: 월(M)
+- yearweek: 주(W)
+- Date: 일(D)
+- POSIXct: 시간(h), 분(m), 초(s), 천분의 1초(us), 백만분의 1초(ms)
+
+`Date` 혹은 `POSITct`는 월단위를 지원하지 않지만 `tsibble`은 `yearmonth`/`yearmth`를 지원한다.
+`weather_tsbl` 객체는 시계열 단위 `[1h]`와 함께 키도 `origin [3]`으로 명시적으로 나타내고 있다.
+
+
+# `tsibble` 객체 데이터 조작 {#time-series-tsibble-mgmt}
+
+데이터프레임 `dplyr` 동사 `group_by()`에 대응되는 `tsibble` `index_by()` 함수를 사용해서 
+`lubridate` 팩키지 함수를 사용해서 시간단위 인덱스 `time_hour` 변수를 `as_date()` 함수로 날짜형으로 변환시키고 나서 `month()` 함수를 사용해서 월단위로 시계열 단위를 변환시킨 후에 최고/최저 온도를 요약하여 정리한다.
+
+```{r tsibble-data-manipulation}
+weather_tsbl %>%
+  group_by(origin) %>%
+  index_by(month = as_date(time_hour) %>% month(.)) %>% 
+  summarise(
+    temp_high = max(temp, na.rm = TRUE),
+    temp_average = mean(temp, na.rm = TRUE),
+    temp_low = min(temp, na.rm = TRUE)
+  ) %>% 
+  DT::datatable()
+```
+
+
+# 불규칙 시계열 데이터 {#time-series-tsibble-irregular}
+
+데이터프레임을 `tsibble` 객체로 변환시킬 경우 기본디폴트 설정으로 `regular=TRUE`로 되어있다. 하지만, `nycflights13::flights` 데이터프레임의 경우 `carrier`, `flight`를 키로 두고 `as_tsibble()` 함수를 적용시킬 경우 불규칙 시간 간격을 갖는 시계열 데이터가 생성된다.
+
+먼저 `lubridate` 팩키지 `make_datetime()` 함수를 가지고 시계열 날짜시간 `sched_dep_datetime` 변수를 생성시킨다.
+
+```{r tsibble-data-irregular}
+flights <- nycflights13::flights %>%
+  mutate(sched_dep_datetime = make_datetime(year, month, day, hour, minute, tz = "America/New_York")) %>% 
+  select(carrier, flight, year, month, day, hour, minute, sched_dep_datetime, dep_delay)
+flights
+```
+
+`carrier`, `flight` 변수를 `key=`을 설정하여 관측단위로 지정하고 `make_datetime()` 함수로 생성시킨 `sched_dep_datetime` 변수를 `index=`에 지정하고 `regular = FALSE`으로 불규칙 시계열 자료임을 명시적으로 선엉하여 `tsibble` 객체를 만든다.
+
+```{r tsibble-data-irregular-convert}
+flights_tsbl <- as_tsibble(flights, key=id(carrier, flight), 
+                                    index=sched_dep_datetime, 
+                                    regular = FALSE)
+flights_tsbl
+```
+
+`flights_tsbl` 객체는 `A tsibble: 336,776 x 9 [!] <America/New_York>`에서 나타나듯이 `[!]` 표식을 통해 불규칙 시계열데이터임을 확인할 수 있다. 
+불규칙 시계열 데이터를 균등간격을 갖는 시계열 데이터로 변환시킬 경우 `index_by()` + `summarize()`를 사용한다. `A tsibble: 336,752 x 4 [1D]`에 나타난 것처럼 일별 `[1D]`로 균등간격을 갖는 시계열로 변환이 되었다.
+
+```{r tsibble-data-irregular-convert-fix}
+flights_tsbl %>% 
+  group_by(carrier, flight) %>% 
+  index_by(day = as_date(sched_dep_datetime)) %>% 
+  summarise(delay_mean = mean(dep_delay, na.rm=TRUE)) %>% 
+  arrange(desc(delay_mean))
+  
+```
