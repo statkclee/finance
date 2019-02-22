@@ -1,7 +1,7 @@
 ---
 layout: page
 title: 데이터 과학 -- 금융(Finance)
-subtitle: "시계열 데이터 자료구조 - `zoo/xts`"
+subtitle: "시계열 데이터 자료구조 - `tsibble`"
 author:
     name: xwMOOC
     url: https://www.facebook.com/groups/tidyverse/
