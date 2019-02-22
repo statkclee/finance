@@ -83,7 +83,7 @@ weather_tsbl
 ```{r tsibble-data-manipulation}
 weather_tsbl %>%
   group_by(origin) %>%
-  index_by(month = as_date(time_hour) %>% month(.)) %>% 
+  index_by(month = yearmonth(time_hour)) %>% 
   summarise(
     temp_high = max(temp, na.rm = TRUE),
     temp_average = mean(temp, na.rm = TRUE),
@@ -116,13 +116,86 @@ flights_tsbl
 ```
 
 `flights_tsbl` 객체는 `A tsibble: 336,776 x 9 [!] <America/New_York>`에서 나타나듯이 `[!]` 표식을 통해 불규칙 시계열데이터임을 확인할 수 있다. 
-불규칙 시계열 데이터를 균등간격을 갖는 시계열 데이터로 변환시킬 경우 `index_by()` + `summarize()`를 사용한다. `A tsibble: 336,752 x 4 [1D]`에 나타난 것처럼 일별 `[1D]`로 균등간격을 갖는 시계열로 변환이 되었다.
+불규칙 시계열 데이터를 균등간격을 갖는 시계열 데이터로 변환시킬 경우 `index_by()` + `summarize()`를 사용한다. `A tsibble: 22,789 x 4 [1M]`에 나타난 것처럼 월별 `[1M]`로 균등간격을 갖는 시계열로 변환이 되었다.
 
 ```{r tsibble-data-irregular-convert-fix}
 flights_tsbl %>% 
   group_by(carrier, flight) %>% 
-  index_by(day = as_date(sched_dep_datetime)) %>% 
+  index_by(month = yearmonth(sched_dep_datetime)) %>% 
   summarise(delay_mean = mean(dep_delay, na.rm=TRUE)) %>% 
   arrange(desc(delay_mean))
-  
+```
+
+
+# 결측값(`NA`) 처리 {#time-series-tsibble-na}
+
+본격적인 시계열 데이터 분석을 위해서 결측값(`NA`)에 대한 면밀한 조사가 선행되어야 한다.
+이를 위해서 `tsibble` 팩키지는 다음 함수를 제공하고 있다.
+
+- `has_gaps()`
+- `scan_gaps()`
+- `count_gaps()`
+- `fill_gaps()`
+
+`pedestrian` 데이터셋은 `tsibble` 팩키지에 내장된 `tsibble` 객체로 IoT 센서데이터를 담고 있는데 결측값이 상당수 포함되어 있다. `Sensor` 변수가 관측점별 키 역할을 하고 있으며 총 4개 센서가 있다.
+`has_gaps()` 함수를 통해 센서 4개 모두 결측값이 존재됨이 확인되었다.
+
+```{r tsibble-na}
+pedestrian
+
+has_gaps(pedestrian)
+```
+
+결측값이 확인되면 다음으로 관심있는 사항은 결측값이 각 센서별로 몇개나 있는지 계산해야 한다.
+`count_gaps()` 함수를 통해서 각센서별 기간별 결측값이 발생된 횟수를 파악할 수 있다.
+
+```{r tsibble-na-count}
+pedestrian %>% 
+  count_gaps(.fill=TRUE) %>% 
+  arrange(desc(.n))
+```
+
+다음으로 결측값에 대한 상세한 내용을 파악하려면 `scan_gaps()` 함수를 통해 파악할 수 있다.
+
+```{r tsibble-na-scan}
+pedestrian %>% 
+  filter(Sensor == "Bourke Street Mall (North)") %>% 
+  scan_gaps()
+```
+
+`ggplot` 팩키지를 통해서 결측값을 시각화하여 파악하는 것도 가능하다.
+이를 통해서 센서가 정상적으로 동작하지 않는 기간이 언제였는지 쉽게 파악할 수 있다.
+
+```{r tsibble-na-viz}
+pedestrian %>% 
+  count_gaps(.fill=TRUE) %>% 
+  ggplot(aes(x = Sensor, colour = Sensor)) +
+    geom_linerange(aes(ymin = .from, ymax = .to)) +
+    geom_point(aes(y = .from)) +
+    geom_point(aes(y = .to)) +
+    coord_flip() +
+    theme(legend.position = "top") +
+    labs(x="")
+```
+
+센서별로 결측값이 발생한 시간을 파악하게 되면 다음 단계로 결측값을 채워넣는다.
+`fill_gaps()` 함수를 사용한다.
+시간별로 빈칸을 `NA`로 채워넣거나 `mean(Count)` 평균값을 포함한 다른 값으로도 채워넣는 것이 가능하다.
+
+```{r tsibble-na-fill}
+na_g <- pedestrian %>% 
+  fill_gaps(.full=TRUE) %>% 
+  ggplot(aes(x=Date_Time, y=Count, color=Sensor)) +
+    geom_line() +
+    facet_wrap(~Sensor) +
+    theme(legend.position = "none")
+
+fill_g <- pedestrian %>% 
+  fill_gaps(Count = mean(Count), .full=TRUE) %>% 
+  ggplot(aes(x=Date_Time, y=Count, color=Sensor)) +
+    geom_line() +
+    facet_wrap(~Sensor) +
+    theme(legend.position = "none")
+
+cowplot::plot_grid(na_g, fill_g)
 ```
