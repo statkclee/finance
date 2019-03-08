@@ -10,7 +10,7 @@ date: "`r Sys.Date()`"
 output:
   html_document: 
     toc: yes
-    toc_float: false
+    toc_float: true
     highlight: tango
     code_folding: show
     number_section: true
@@ -66,7 +66,7 @@ kospi50_df %>% write_rds("data/kospi50_df.rds")
 
 무명함수를 사용해서 기본적인 통계량을 각 종목별로 작업을 수행할 수 있다.
 
-```{r kospi-stock-data-ohlc-eda, eval = FALSE}
+```{r kospi-stock-data-ohlc-eda, eval = TRUE}
 kospi50_df  <- read_rds("data/kospi50_df.rds")
 
 kospi50_df %>% 
@@ -118,7 +118,7 @@ kospi50_plot_df <- kospi50_df %>%
 
 마지막으로 `trelliscope()` 함수로 시각화한다.
 
-```{r kospi-stock-data-ohlc-viz-go, eval=FALSE}
+```{r kospi-stock-data-ohlc-viz-go, eval=TRUE}
 trelliscope(kospi50_plot_df,
             name = "ohlc", nrow = 2, ncol = 3,
             state = list(labels = c("종목명", "종목코드")),

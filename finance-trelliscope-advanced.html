@@ -10,8 +10,9 @@
 
 
 
+<meta name="date" content="2019-03-08" />
 
-<title></title>
+<title>데이터 시각화 - 인터랙티브</title>
 
 <script src="finance-trelliscope-advanced_files/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -19,10 +20,90 @@
 <script src="finance-trelliscope-advanced_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="finance-trelliscope-advanced_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="finance-trelliscope-advanced_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="finance-trelliscope-advanced_files/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="finance-trelliscope-advanced_files/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="finance-trelliscope-advanced_files/tocify-1.9.1/jquery.tocify.js"></script>
 <script src="finance-trelliscope-advanced_files/navigation-1.1/tabsets.js"></script>
 <script src="finance-trelliscope-advanced_files/navigation-1.1/codefolding.js"></script>
+<script src="finance-trelliscope-advanced_files/htmlwidgets-1.3/htmlwidgets.js"></script>
+<script src="finance-trelliscope-advanced_files/trelliscopejs_widget-0.1.20/trelliscope.min.js"></script>
+<script src="finance-trelliscope-advanced_files/trelliscopejs_widget-binding-0.1.18/trelliscopejs_widget.js"></script>
 
 
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; background-color: #f8f8f8; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+pre, code { background-color: #f8f8f8; }
+code > span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+code > span.dt { color: #204a87; } /* DataType */
+code > span.dv { color: #0000cf; } /* DecVal */
+code > span.bn { color: #0000cf; } /* BaseN */
+code > span.fl { color: #0000cf; } /* Float */
+code > span.ch { color: #4e9a06; } /* Char */
+code > span.st { color: #4e9a06; } /* String */
+code > span.co { color: #8f5902; font-style: italic; } /* Comment */
+code > span.ot { color: #8f5902; } /* Other */
+code > span.al { color: #ef2929; } /* Alert */
+code > span.fu { color: #000000; } /* Function */
+code > span.er { color: #a40000; font-weight: bold; } /* Error */
+code > span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #000000; } /* Constant */
+code > span.sc { color: #000000; } /* SpecialChar */
+code > span.vs { color: #4e9a06; } /* VerbatimString */
+code > span.ss { color: #4e9a06; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #000000; } /* Variable */
+code > span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+code > span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+code > span.ex { } /* Extension */
+code > span.at { color: #c4a000; } /* Attribute */
+code > span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+code > span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+
+.sourceCode .row {
+  width: 100%;
+}
+.sourceCode {
+  overflow-x: auto;
+}
+.code-folding-btn {
+  margin-right: -30px;
+}
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
 
 
 <style type="text/css">
@@ -169,6 +250,101 @@ $(document).ready(function () {
 
 
 
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
 
 
 <div class="fluid-row" id="header">
@@ -183,15 +359,110 @@ $(document).ready(function () {
 
 
 
+<h1 class="title toc-ignore">데이터 시각화 - 인터랙티브</h1>
+<h3 class="subtitle"><em>빅데이터 시각화 주식 - <code>trelliscope</code></em></h3>
+<h4 class="author"><em>xwMOOC</em></h4>
+<address class="author_afil">
+Tidyverse Korea<br><h4 class="date"><em>2019-03-08</em></h4>
 
 </div>
 
 
-<hr />
-<p>layout: page title: &quot;</p>
+<div id="bigdata-viz-stock-data" class="section level1">
+<h1><span class="header-section-number">1</span> 코스피 200 주식데이터</h1>
+<p>한국거래소 KRX에서 통계 → 주식 → 종목시세 → [81004] 전체 종목시세에서 <a href="http://marketdata.krx.co.kr/mdi#document=13020101">81004 전체 종목시세</a>에서 한국거래소에서 거래되고 있는 상장사 목록 및 시가총액 데이터를 구할 수 있다. 1월 3일 다운로드 받은 데이터를 바탕으로 시가총액기준으로 상위 200개 종목을 뽑아내어 별도 데이터프레임으로 저장한다.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(tidyverse)
+<span class="kw">library</span>(readxl)
+<span class="kw">library</span>(quantmod)
+
+kospi50_dat &lt;-<span class="st"> </span><span class="kw">read_excel</span>(<span class="st">&quot;data/KRX-상장사-20190111.xlsx&quot;</span>, <span class="dt">sheet=</span><span class="st">&quot;KOSPI&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="st">`</span><span class="dt">거래소</span><span class="st">`</span> =<span class="st"> &quot;코스피&quot;</span>,
+         <span class="st">`</span><span class="dt">시가총액</span><span class="st">`</span> =<span class="st"> </span><span class="kw">parse_number</span>(<span class="st">`</span><span class="dt">시가총액</span><span class="st">`</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">stock_code =</span> <span class="kw">paste0</span>(<span class="st">`</span><span class="dt">종목코드</span><span class="st">`</span>, <span class="st">&quot;.KS&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">top_n</span>(<span class="dv">50</span>, <span class="dt">wt=</span><span class="st">`</span><span class="dt">시가총액</span><span class="st">`</span>)</code></pre></div>
+<p>시가총액 상위 200개 업체를 뽑아낸 후에 종목코드를 기준으로 주식데이터를 <code>quantmod</code> 팩키지를 사용해서 데이터를 가져오는 대신 상위 50개 종목만 추출하여 데이터를 가져온다.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(quantmod)
+## 상위 50 주식 데이터 가져오기 -----
+kospi50_df &lt;-<span class="st"> </span>kospi50_dat <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">select</span>(stock_code, <span class="st">`</span><span class="dt">종목코드</span><span class="st">`</span>, <span class="st">`</span><span class="dt">종목명</span><span class="st">`</span>, <span class="st">`</span><span class="dt">시가총액</span><span class="st">`</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">stock_data =</span> <span class="kw">map</span>(stock_code, <span class="cf">function</span>(x) <span class="kw">getSymbols</span>(x, <span class="dt">src=</span><span class="st">&quot;yahoo&quot;</span>, <span class="dt">from=</span><span class="st">&quot;2015-01-01&quot;</span>,
+                                                             <span class="dt">auto.assign =</span> <span class="ot">FALSE</span>, <span class="dt">USE.NAMES =</span> <span class="ot">FALSE</span>, 
+                                                             <span class="dt">simplify =</span> <span class="ot">FALSE</span>))) 
+## 변수명 통일 -----
+<span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">nrow</span>(kospi50_df)) {
+  <span class="kw">names</span>(kospi50_df<span class="op">$</span>stock_data[[i]]) &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;open&quot;</span>, <span class="st">&quot;high&quot;</span>, <span class="st">&quot;low&quot;</span>, <span class="st">&quot;close&quot;</span>, <span class="st">&quot;volume&quot;</span>, <span class="st">&quot;adjust&quot;</span>)
+}
+
+kospi50_df <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">write_rds</span>(<span class="st">&quot;data/kospi50_df.rds&quot;</span>)</code></pre></div>
+</div>
+<div id="bigdata-viz-stock-data-eda" class="section level1">
+<h1><span class="header-section-number">2</span> 종목별 기초 통계</h1>
+<p>무명함수를 사용해서 기본적인 통계량을 각 종목별로 작업을 수행할 수 있다.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">kospi50_df  &lt;-<span class="st"> </span><span class="kw">read_rds</span>(<span class="st">&quot;data/kospi50_df.rds&quot;</span>)
+
+kospi50_df <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">arrange</span>(<span class="kw">desc</span>(<span class="st">`</span><span class="dt">시가총액</span><span class="st">`</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">close_max_price =</span> <span class="kw">map_dbl</span>(stock_data, <span class="cf">function</span>(x) <span class="kw">max</span>(x<span class="op">$</span>close)),
+         <span class="dt">close_min_price =</span> <span class="kw">map_dbl</span>(stock_data, <span class="cf">function</span>(x) <span class="kw">min</span>(x<span class="op">$</span>close)))</code></pre></div>
+<pre><code># A tibble: 50 x 7
+   stock_code 종목코드 종목명 시가총액 stock_data close_max_price
+   &lt;chr&gt;      &lt;chr&gt;    &lt;chr&gt;     &lt;dbl&gt; &lt;list&gt;               &lt;dbl&gt;
+ 1 005930.KS  005930   삼성전자…  2.42e14 &lt;S3: xts&gt;            57220
+ 2 000660.KS  000660   SK하이닉…  4.74e13 &lt;S3: xts&gt;            95300
+ 3 005935.KS  005935   삼성전자우…  2.72e13 &lt;S3: xts&gt;            46700
+ 4 068270.KS  068270   셀트리온…  2.72e13 &lt;S3: xts&gt;           366176
+ 5 005380.KS  005380   현대차  2.63e13 &lt;S3: xts&gt;           184000
+ 6 207940.KS  207940   삼성바이오…  2.62e13 &lt;S3: xts&gt;           584000
+ 7 051910.KS  051910   LG화학  2.46e13 &lt;S3: xts&gt;           441500
+ 8 005490.KS  005490   POSCO   2.23e13 &lt;S3: xts&gt;           395000
+ 9 015760.KS  015760   한국전력…  2.23e13 &lt;S3: xts&gt;            63000
+10 035420.KS  035420   NAVER   2.16e13 &lt;S3: xts&gt;           192000
+# … with 40 more rows, and 1 more variable: close_min_price &lt;dbl&gt;</code></pre>
+</div>
+<div id="bigdata-viz-stock-data-viz" class="section level1">
+<h1><span class="header-section-number">3</span> 주식 빅데이터 시각화</h1>
+<p>무명함수를 사용해서 기본적인 통계량을 각 종목별로 작업을 수행할 수 있다.</p>
+<div id="bigdata-viz-stock-data-viz-df" class="section level2">
+<h2><span class="header-section-number">3.1</span> <code>xts</code> → 데이터프레임</h2>
+<p><code>plotly</code>를 사용해서 시각화를 하려면 <code>quantmod</code>를 통해 다운로드 받은 <code>xts</code> 데이터를 데이터프레임으로 변환시킨다.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">kospi50_df  &lt;-<span class="st"> </span><span class="kw">read_rds</span>(<span class="st">&quot;data/kospi50_df.rds&quot;</span>)
+
+<span class="kw">options</span>(<span class="dt">encoding =</span> <span class="st">&quot;utf-8&quot;</span>)
+<span class="kw">library</span>(trelliscopejs)
+<span class="kw">library</span>(plotly)
+
+
+kospi50_df &lt;-<span class="st"> </span>kospi50_df <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">stock_df =</span> <span class="kw">map</span>(stock_data, <span class="op">~</span><span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">date=</span><span class="kw">index</span>(.x), <span class="kw">coredata</span>(.x))))</code></pre></div>
+</div>
+<div id="bigdata-viz-stock-data-viz-plot" class="section level2">
+<h2><span class="header-section-number">3.2</span> <code>map_plot</code> 시각화 객체 생성</h2>
+<p><code>plot_ly()</code> 함수를 간결하게 <code>OHLC</code>를 시각화할 수 있도록 <code>ohlc_plot()</code> 사용자 정의 함수를 생성하고 이를 <code>map_plot()</code>을 전달한다.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ohlc_plot &lt;-<span class="st"> </span><span class="cf">function</span>(df) {
+  <span class="kw">plot_ly</span>(df, <span class="dt">x =</span> <span class="op">~</span>date, <span class="dt">type =</span> <span class="st">&quot;ohlc&quot;</span>,
+          <span class="dt">open =</span> <span class="op">~</span>open, <span class="dt">close =</span> <span class="op">~</span>close,
+          <span class="dt">high =</span> <span class="op">~</span>high, <span class="dt">low =</span> <span class="op">~</span>low)
+}
+
+kospi50_plot_df &lt;-<span class="st"> </span>kospi50_df <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">panel =</span> <span class="kw">map_plot</span>(stock_df, ohlc_plot))</code></pre></div>
+</div>
+<div id="bigdata-viz-stock-data-viz-trelliscope" class="section level2">
+<h2><span class="header-section-number">3.3</span> <code>trelliscopeJS</code> 시각화</h2>
+<p>마지막으로 <code>trelliscope()</code> 함수로 시각화한다.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">trelliscope</span>(kospi50_plot_df,
+            <span class="dt">name =</span> <span class="st">&quot;ohlc&quot;</span>, <span class="dt">nrow =</span> <span class="dv">2</span>, <span class="dt">ncol =</span> <span class="dv">3</span>,
+            <span class="dt">state =</span> <span class="kw">list</span>(<span class="dt">labels =</span> <span class="kw">c</span>(<span class="st">&quot;종목명&quot;</span>, <span class="st">&quot;종목코드&quot;</span>)),
+            <span class="dt">path=</span><span class="st">&quot;finance-trelliscope-advanced_files&quot;</span>)</code></pre></div>
+<div id="htmlwidget-81c58c46ed4e827dc7e6" style="width:900px;height:550px;" class="trelliscopejs_widget html-widget"></div>
+<script type="application/json" data-for="htmlwidget-81c58c46ed4e827dc7e6">{"x":{"id":"a5db1bed","config_info":"'finance-trelliscope-advanced_files/appfiles/config.jsonp'","self_contained":false,"latest_display":{"name":"ohlc","group":"common"},"spa":false,"in_knitr":true,"in_notebook":false},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
 
 
 
+</div>
+</div>
 
 </div>
 
