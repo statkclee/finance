@@ -1,0 +1,12 @@
+__loadDisplayList__a5db1bed([
+  {
+    "group": "common",
+    "name": "ohlc",
+    "desc": "",
+    "n": 50,
+    "height": 500,
+    "width": 500,
+    "updated": "2019-03-08 12:38:35",
+    "keySig": "cf8be324f650898d6f1374ce711a2175"
+  }
+])

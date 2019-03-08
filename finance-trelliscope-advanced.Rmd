@@ -1,0 +1,128 @@
+---
+layout: page
+title: "데이터 시각화 - 인터랙티브"
+subtitle: "빅데이터 시각화 주식 - `trelliscope`"
+author:
+    name: xwMOOC
+    url: https://www.facebook.com/groups/tidyverse/
+    affiliation: Tidyverse Korea
+date: "`r Sys.Date()`"
+output:
+  html_document: 
+    toc: yes
+    toc_float: false
+    highlight: tango
+    code_folding: show
+    number_section: true
+    self_contained: false
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE,
+                    comment="", digits = 3, tidy = FALSE, prompt = FALSE, fig.align = 'center')
+
+```
+
+
+# 코스피 200 주식데이터 {#bigdata-viz-stock-data}
+
+한국거래소 KRX에서 통계 &rarr; 주식 &rarr; 종목시세 &rarr; [81004] 전체 종목시세에서 [81004 전체 종목시세](http://marketdata.krx.co.kr/mdi#document=13020101)에서 한국거래소에서 거래되고 있는 상장사 목록 및 시가총액 데이터를 구할 수 있다. 1월 3일 다운로드 받은 데이터를 바탕으로 시가총액기준으로 상위 200개 종목을 뽑아내어 별도 데이터프레임으로 저장한다.
+
+```{r kospi-stock-data}
+library(tidyverse)
+library(readxl)
+library(quantmod)
+
+kospi50_dat <- read_excel("data/KRX-상장사-20190111.xlsx", sheet="KOSPI") %>% 
+  mutate(`거래소` = "코스피",
+         `시가총액` = parse_number(`시가총액`)) %>% 
+  mutate(stock_code = paste0(`종목코드`, ".KS")) %>% 
+  top_n(50, wt=`시가총액`)
+```
+
+시가총액 상위 200개 업체를 뽑아낸 후에 종목코드를 기준으로 주식데이터를 `quantmod` 팩키지를 사용해서 데이터를 가져오는 대신 상위 50개 종목만 추출하여 데이터를 가져온다.
+
+```{r kospi-stock-data-ohlc, eval=FALSE}
+library(quantmod)
+## 상위 50 주식 데이터 가져오기 -----
+kospi50_df <- kospi50_dat %>% 
+  select(stock_code, `종목코드`, `종목명`, `시가총액`) %>% 
+  mutate(stock_data = map(stock_code, function(x) getSymbols(x, src="yahoo", from="2015-01-01",
+                                                             auto.assign = FALSE, USE.NAMES = FALSE, 
+                                                             simplify = FALSE))) 
+## 변수명 통일 -----
+for(i in 1:nrow(kospi50_df)) {
+  names(kospi50_df$stock_data[[i]]) <- c("open", "high", "low", "close", "volume", "adjust")
+}
+
+kospi50_df %>% write_rds("data/kospi50_df.rds")
+```
+
+
+# 종목별 기초 통계 {#bigdata-viz-stock-data-eda}
+
+무명함수를 사용해서 기본적인 통계량을 각 종목별로 작업을 수행할 수 있다.
+
+```{r kospi-stock-data-ohlc-eda, eval = FALSE}
+kospi50_df  <- read_rds("data/kospi50_df.rds")
+
+kospi50_df %>% 
+  arrange(desc(`시가총액`)) %>% 
+  mutate(close_max_price = map_dbl(stock_data, function(x) max(x$close)),
+         close_min_price = map_dbl(stock_data, function(x) min(x$close)))
+```
+
+
+# 주식 빅데이터 시각화 {#bigdata-viz-stock-data-viz}
+
+무명함수를 사용해서 기본적인 통계량을 각 종목별로 작업을 수행할 수 있다.
+
+## `xts` &rarr; 데이터프레임  {#bigdata-viz-stock-data-viz-df}
+
+`plotly`를 사용해서 시각화를 하려면 `quantmod`를 통해 다운로드 받은 `xts` 데이터를 데이터프레임으로 변환시킨다.
+
+
+```{r kospi-stock-data-ohlc-viz-df}
+kospi50_df  <- read_rds("data/kospi50_df.rds")
+
+options(encoding = "utf-8")
+library(trelliscopejs)
+library(plotly)
+
+
+kospi50_df <- kospi50_df %>% 
+  mutate(stock_df = map(stock_data, ~ data.frame(date=index(.x), coredata(.x))))
+```
+
+## `map_plot` 시각화 객체 생성  {#bigdata-viz-stock-data-viz-plot}
+
+`plot_ly()` 함수를 간결하게 `OHLC`를 시각화할 수 있도록 `ohlc_plot()` 사용자 정의 함수를 생성하고 이를 `map_plot()`을 전달한다.
+
+
+```{r kospi-stock-data-ohlc-viz}
+ohlc_plot <- function(df) {
+  plot_ly(df, x = ~date, type = "ohlc",
+          open = ~open, close = ~close,
+          high = ~high, low = ~low)
+}
+
+kospi50_plot_df <- kospi50_df %>% 
+  mutate(panel = map_plot(stock_df, ohlc_plot))
+```
+
+
+## `trelliscopeJS` 시각화  {#bigdata-viz-stock-data-viz-trelliscope}
+
+마지막으로 `trelliscope()` 함수로 시각화한다.
+
+```{r kospi-stock-data-ohlc-viz-go, eval=FALSE}
+trelliscope(kospi50_plot_df,
+            name = "ohlc", nrow = 2, ncol = 3,
+            state = list(labels = c("종목명", "종목코드")),
+            path="finance-trelliscope-advanced_files")
+```
+
+
