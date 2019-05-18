@@ -1,0 +1,314 @@
+---
+layout: page
+title: 데이터 과학 -- 금융(Finance)
+subtitle: "시계열 자료구조 - 파이썬"
+author:
+    name: xwMOOC
+    url: https://www.facebook.com/groups/tidyverse/
+    affiliation: Tidyverse Korea
+date: "`r Sys.Date()`"
+output:
+  html_document: 
+    toc: yes
+    toc_float: true
+    highlight: tango
+    code_folding: show
+    number_section: true
+    self_contained: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
+                      comment="", digits = 3, tidy = FALSE, prompt = FALSE, fig.align = 'center')
+
+library(reticulate)
+use_condaenv("anaconda3")
+# reticulate::repl_python()
+```
+
+
+# 파이썬 날짜 자료형 {#ts-python-string2date}
+
+[광복이후 한국의 '10대 사건'](https://www.jeongrakin.com/164) 웹사이트에서 날짜를 추출해보자.
+
+- 한국전쟁: "1950-06-25"
+- 광주 민주화운동: "1980-05-18"
+- 516 군사 정변: 1961-05-16
+- 419 혁명: 1960-04-19
+- 6월 민주항쟁: 1987-06-10
+- 박정희 전 대통령 서거: 1979-10-26
+- 노무현 전 대통령 서거: 2009-05-23
+- IMF 외환위기: 1997-12-03
+- 1212 군사반란: 1979-12-12
+- 88년 서울 올림픽: 1988-09-17
+
+가장 먼저 `datetime` 팩키지에서 `date()` 함수를 사용해서 정수를 입력받아 날짜형으로 자료를 변환시킬 수 있따. 자료형이 날짜(`date`)로 바뀌게 되면 `.year`, `.month`, `.day`를 통해 연/월/일을 추출해낼 수 있다.
+
+또한, 문자열 혹은 정수조합을 날짜 자료형으로 변경되면 어떤 요일인지도 쉽게 파악할 수 있게 된다.
+
+- 0: 월요일
+- 1: 화요일
+- 2: 수요일
+- 3: 목요일
+- 4: 금요일
+- 5: 토요일
+- 6: 일요일
+
+```{python string-to-date}
+from datetime import date
+
+korea_case_date = [date(1950, 6, 25), date(1988, 9, 17)]
+
+print(korea_case_date[0].year)
+print(korea_case_date[0].month)
+print(korea_case_date[0].day)
+print(korea_case_date[0].weekday())
+```
+
+## 날짜 연산 {#ts-python-arithmatic}
+
+자료형을 날짜로 변경시키면 연산작업(예를 들어, 두 날짜 사이 경과일)을 수월히 할 수 있다.
+`max()` 함수를 사용해서 가장 최근 날짜를 뽑아낼 수 있고, `olympic - korea_war`와 같이 두 날짜 사이 기간도 계산이 가능하다.
+
+```{python date-arithmatic}
+from datetime import date
+
+korea_war = date(1950, 6, 25)
+olympic = date(1988, 9, 17)
+
+korea_case = [korea_war, olympic]
+
+## 가장 최근 날짜
+print(max(korea_case))
+
+## 두 날짜 사이 경과일
+delta = olympic - korea_war
+print("경과일:",  delta)
+```
+
+`timedelta()` 함수를 사용해서 특정 일 기준 전후 날짜 계산도 쉽게 할 수 있다.
+
+```{python date-arithmatic-timedelta}
+from datetime import timedelta
+
+## 전쟁 발발 45일이 지난 날짜
+korea_war_since = korea_war + timedelta(days=45)
+print("전쟁발발 45일 후: ",  korea_war_since)
+```
+
+## 날짜를 문자열 - 다양한 형식 {#ts-python-string}
+
+데이터가 날짜 자료형으로 되어 있으면 다양한 함수와 규칙을 적용하여 사람이 판독하기 수월한 형태로 출력하는 것이 가능하다. "ISO 8601"은 날짜와 시간에 대한 국제 표준이라 이를 따라하게 되면 전세계 사용자와 수월하게 날짜 정보를 의사소통할 수 있게 된다.
+
+예를 들어, 앞서 한국전쟁 발발일을 날짜형으로 자료구조를 바꾼후에 `.isoformat()`으로 출력형식을 바꾼 후에 `[]` 리스트로 감싸게 되면 `print()` 함수로 원하는 형식으로 출력된 것을 확인할 수 있다.
+
+```{python iso-format}
+print("한국전쟁 발발일 :", [korea_war.isoformat()])
+print(korea_war.strftime("%Y-%m-%d"))
+```
+
+한국어로 날짜를 표현할 경우 유니코드를 사용할 수 있도록 일부 내용을 추가시켜서 원하는 날짜 형태로 출력시킨다. [^korean-date]
+
+[^korean-date]: [파이썬 날짜 표현 한글에러](https://medium.com/@onlytojay/%ED%8C%8C%EC%9D%B4%EC%8D%AC-%EB%82%A0%EC%A7%9C-%ED%91%9C%ED%98%84-%ED%95%9C%EA%B8%80-%EC%97%90%EB%9F%AC-44aea1ae66d8)
+
+```{python iso-format-print}
+print(
+    korea_war.strftime(
+        '한국전쟁 발발일: %Y년 %m월 %d일'.encode('unicode-escape').decode()
+    ).encode().decode('unicode-escape')
+)
+```
+
+
+# 날짜에 시간을 추가 [^korean-war-time] {#ts-python-time}
+
+[^korean-war-time]: [다시 쓰는 625전쟁 - 625전쟁 개전 시간은 몇 시인가?](http://kodef.net/?p=180)
+
+앞서 날짜에 시간을 표현할 경우 `datetime()` 함수에 "연/월/일"과 더불어 "시/분/초/마이크로 초"를 함께 적시하여 날짜시간(datetime) 자료객체를 생성시킬 수 있다.
+
+```{python date-time}
+from datetime import datetime
+korean_war_dt = datetime(year=1950, month=6, day=25,
+                         hour=4, minute=0, second=0, microsecond=000000)
+print(korean_war_dt)                         
+```
+
+1950년 6월 25일 새벽 4시 전쟁이 발발했다는 것이 정설이나 일부 3시부터 전쟁이 시작되었다고 주장하는 사례도 있어 이런 경우 시간을 `.replace()`을 사용해서 변경시킬 수 있다.
+
+```{python datetime-replace}
+korean_war_hour_dt = korean_war_dt.replace(hour=3, minute=0, second=0, microsecond=0)
+print(korean_war_hour_dt)
+```
+
+## 날짜와 시간 출력 {#ts-python-datetime}
+
+`날짜자료형.strftime()` 함수를 사용해서 날짜시간형 자료형을 문자열로 바꿔 출력이 가능하다.
+물론 "%Y-%m-%d %H:%M:%S"와 같이 출력형식을 지정한다.
+`날짜자료형.isoformat()` 함수를 사용하면 ISO 8601 표준에 맞춰 출력시킬 수 있다.
+
+```{python datetime-parsing}
+print(korean_war_dt.strftime("%Y-%m-%d"))
+print(korean_war_dt.strftime("%Y-%m-%d %H:%M:%S"))
+print(korean_war_dt.isoformat())
+```
+
+## 문자열 날짜시간 변환 {#ts-python-datetime-conversion}
+
+"1950-06-25 04:00:00" 문자열을 `datetime.strptime()`으로 변환시킬 때 날짜/시간 정보가 들어간 각 구성요소를 적절히 매칭시켜 변환과정에서 생길 수 있는 모호함을 최소화 시킨다.
+
+```{python datetime-parsing-conversion}
+korea_war_conversion_dt = datetime.strptime("1950-06-25 04:00:00",
+                                            "%Y-%m-%d %H:%M:%S")
+                                            
+print(korea_war_conversion_dt.isoformat())
+```
+
+## 숫자(유닉스) 날짜시간 변환 {#ts-python-unix-datetime-conversion}
+
+[Epoch & Unix Timestamp Conversion Tools](https://www.epochconverter.com/)을 사용하면 숫자를 사람이 읽을 수 있는 형태 날짜/시간으로 변환시킬 수 있다.
+
+```{python datetime-unix-parsing-conversion}
+unix_ts = 1558156445
+
+print(datetime.fromtimestamp(unix_ts))
+```
+
+
+# 기간(duration) 작업 {#ts-python-duration}
+
+기간을 계산하는 경우 앞서 두 날짜 객체를 뺄셈하여 구할 수도 있지만 보다 정확한 기간 계산(duration)을 위해서 `.total_seconds()`와 같은 함수를 사용해서 구한다.
+
+```{python datetime-duration}
+korea_war = datetime(1950, 6, 25, 4, 0, 0)
+olympic   = datetime(1988, 9, 17, 9, 0, 0)
+
+duration = olympic - korea_war
+
+print(duration.total_seconds())
+```
+
+앞서 날짜와 마찬가지로 `.timedelta()` 함수를 사용해서 특정 시각이후 변동시각을 계산할 수 있다.
+
+```{python datetime-duration-timedelta}
+from datetime import timedelta
+
+olympic_hour = olympic + timedelta(hours=1)
+
+print(olympic_hour)
+```
+
+
+# 시간대(Timezone) [^timezone-korea] {#ts-python-timezone}
+
+[^timezone-korea  ]: [한국표준시, 대한민국 타임존, GMT UTC 한국시간, November 15, 2007](http://mwultong.blogspot.com/2007/11/gmt-utc.html)
+
+"KST(Korea Standard Time)" 즉 "대한민국 표준시"는 현재 우리나라가 채택하고 있는 시간에 대한 표준입니다. KST의 타임존은 UTC/GMT +9 으로, 그리니치 천문대가 있는 곳의 시간인 세계협정시(세계표준시)에서 9시간을 더하면 한국시간이 된다.
+
+`timedelta()`에서 `timezone()`을 추출하면 현재 시간대가 어디인지 확인이 가능하고 이를 앞서 시간대 정보가 없었던 한국전쟁 발발시간에 더해서 완전한 날짜/시간 정보를 표현한다.
+
+```{python ts-timezone}
+from datetime import datetime, timedelta, timezone
+import pytz
+
+KST = timezone(timedelta(hours=9))
+print("클래스:", type(KST), "\n시간대: ", KST)
+
+korea_war_tz_dt = datetime(1950, 6, 25, 4, 0, 0, tzinfo = KST)
+print(korea_war_tz_dt)
+```
+
+
+
+# 시간대(Timezone) 데이터베이스 {#ts-python-timezone-db}
+
+유튜브 다음 동영상을 보게 되면 시간을 다루는 개발자가 필히 익혀야 되는 지식중에 하나가 시간대임이 분명하다. 하지만, 여러가지 상황에 따라 시간이 변경되기 때문에 기존에 만들어둔 시간대 데이터베이스를 활용하는 것이 나름 새로운 해법이 될 수 있다.
+
+<iframe width="300" height="180" src="https://www.youtube.com/embed/-5wpm-gesOY" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+`tz` 데이터베이스는 "대륙/도시" 형태로 되어 있어 'Asia/Seoul'로 표현하게 되면 시간대를 파악할 수 있게 된다.
+
+```{python ts-timezone-db2}
+from dateutil import tz
+
+KST = tz.gettz('Asia/Seoul')
+print("클래스:", type(KST), "\n시간대: ", KST)
+```
+
+한국전쟁 발발일과 일시 및 시간대를 포함시켜 완벽한 한국전쟁 발발일을 명세하게 된다.
+
+```{python ts-timezone-db}
+korea_war_tz_dt = datetime(1950, 6, 25, 4, 0, 0, tzinfo=KST)
+print(korea_war_tz_dt.isoformat())
+```
+
+# 무인대여 공영자전거 {#ts-python-bicycle}
+
+`OSError: Initializing from file failed pandas` 오류가 발생하여 판다스로 `.csv` 파일을 불러 읽어 올 수 없는 경우 `pd.read_csv()` 함수 내부에 `engine='python'`을 명시하면 된다.
+무인대여 자전거의 경우 '출발일'과 '도착일'이 데이터에 포함되어 있어 이를 `parse_dates` 인자를 넣어 명세하게 되면 자료형을 문자열이 아닌 날짜/시간형으로 변경시키게 된다.
+
+먼저 공공데이터포털 웹사이트에서 "무인대여 공영자전거 누비자 현황 -
+창원시 무인대여 공영자전거 터미널현황 및 자전거 대여정보" CSV 파일을 다운로드하여 `data/` 디렉토리 아래 `창원시무인대여공영자전거_누비자_대여반납이력_2017.02.csv`이름으로 저장시켜논 뒤 작업진행한다.
+
+```{python bicycle-pandas}
+import pandas as pd
+
+bike_df = pd.read_csv("data/창원시무인대여공영자전거_누비자_대여반납이력_2017.02.csv", engine='python')
+
+bike_df.head(5)
+```
+
+자료가 출발일과 도착일 날짜와 별개로 출발시간/도착시간이 별도 칼럼으로 구분되어 있어 이를 시간으로 인식하고 출발일과 도착일을 모두 결합시켜 하나의 날짜/시간으로 인식시킬 수도 있으나 두 문자열로 인식한 후에 `pd.to_datetime()`으로 일괄 변경시킨다.
+
+```{python bicycle-pandas-to-date}
+bike_df['출발일시'] = pd.to_datetime(bike_df['출발일'].astype(str) + ' ' + bike_df['출발시간'].astype(str), format = "%Y-%m-%d %H:%M:%S")
+bike_df['도착일시'] = pd.to_datetime(bike_df['도착일'].astype(str) + ' ' + bike_df['도착시간'].astype(str), format = "%Y-%m-%d %H:%M:%S")
+
+bike_df.dtypes
+```
+
+## 기초 통계량 {#ts-python-bicycle-dplytr}
+
+도착일시에서 출발일시를 빼게 되면 대여시간을 산출할 수 있게 된다.
+
+```{python bicycle-pandas-dplyr}
+bike_df['대여시간'] = bike_df['도착일시'] - bike_df['출발일시']
+
+bike_df['대여시간'].head()
+```
+
+`bike_df.columns` 명령어로 데이터프레임 칼럼명을 확인한 후에 시간 정보가 담긴 데이터를 일자기준으로 평균 대여시간을 계산한다. 이런 경우 `dt.total_seconds()` 함수를 사용해서 기간(duration)을 초로 변환시킨다. 특히, `.resample()` 메쏘드를 사용하게 되면 날짜/시간을 원하는 시간기준에 맞춰 요약통계량을 산출할 수 있다.
+
+```{python bicycle-pandas-dplyr-groupby}
+bike_df.columns
+
+bike_df['대여시간'] = bike_df['대여시간'].dt.total_seconds()
+
+bike_df.resample('D', on = "출발일시")['대여시간'].mean()
+```
+
+일별 대여시간 평균 변화를 다음과 같이 `dplyr` 파이프를 연결하는 것처럼 메쏘드체인을 연결시켜서 시각화해 내는 것도 가능하다.
+
+```{python bicycle-pandas-dplyr-groupby-biz, eval=FALSE}
+import matplotlib.pyplot as plt
+
+bike_df \
+  .resample('D', on = "출발일시") \
+  ['대여시간'] \
+  .mean() \
+  .plot()
+```
+
+> `this application failed to start because it could not find or load the qt platform plugin windows` 오류가 발생되는 경우, [Stackoverflow, "Error “could not find or load the Qt platform plugin windows” while using matplotlib in pycharm"](https://stackoverflow.com/questions/41994485/error-could-not-find-or-load-the-qt-platform-plugin-windows-while-using-matplo)을 참조하여 오류를 수정한다.
+
+
+## 요일별 평균대여기간 {#ts-python-bicycle-dplytr-weekday}
+
+날짜/시간 자료형으로 되어 있어 `dt.day_name()`을 사용해서 요일별로 평균 대여시간을 계산해 내는 것도 가능하다.
+
+```{python bicycle-pandas-dplyr-weekday}
+bike_df['요일'] = bike_df['출발일시'].dt.day_name()
+
+bike_df.groupby('요일')['대여시간'].mean()
+```
