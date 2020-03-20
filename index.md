@@ -43,6 +43,7 @@ title: 금융(Finance)
 - **시계열 데이터 시각화**
     - [금융 시계열 시각화 - `hicharter`/조선산업](finance-viz-hichart.html)
     - [빅데이터 시각화 주식 - `trelliscopeJS`](finance-trelliscope-advanced.html)
+    - [시가총액 10년 변화 - 경주하는 막대그래프](finance-marcap-racing-barchart.html)
 - **시계열 모형 - 단일모형**
     - [태양흑점수(sunspot) 예측](finance-time-series-sunspot.html)
     - [시계열 모형 식별 도구 - 자기상관, 승법, 가법, 분해 ...](stat-time-series-tools.html)
