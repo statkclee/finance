@@ -186,28 +186,54 @@ marcap_df %>%
     scale_y_sqrt(limits=c(0,350)) 
 ```
 
+본격적으로 특정연도를 뽑아 `ggplot`으로 시가총액 막대그래프를 제작한다.
+
+```{r marcap-visualize-year-ggplot}
+marcap_df <- read_rds("data/marcap_df.rds")
+
+marcap_g <- marcap_df %>% 
+  filter(str_detect(yearmon, "2019")) %>% 
+  # mutate(yearmon = format(yearmon, "%Y-%m")) %>% 
+  ggplot() +
+    aes(xmin = 0, xmax = marcap) +
+    aes(ymin = rank -.5, ymax = rank + 0.5, y=rank) +
+    facet_wrap(~yearmon) +
+    geom_rect(alpha = .7, aes(fill=name)) +  
+    scale_fill_viridis_d(option = "magma",  
+                         direction = -1) +  
+    scale_x_continuous(  
+      limits = c(-100, 350),  
+      breaks = c(0, 100, 200, 300)) +  
+    geom_text(col = "gray13",  
+              hjust = "right",  
+              aes(label = name),  
+              x = -10, family="NanumGothic") +  
+    scale_y_reverse() +
+    theme(legend.position = "none") +
+    labs(x = '시가총액 (원화 조원)', y ="")
+
+marcap_g
+```
+
+
 ## 디자인 입히기 {#finance-kr-viz-theme}
+
+[Racing Barchart with gganimate](https://evamaerey.github.io/little_flipbooks_library/racing_bars/racing_barcharts.html)를 참조하여 한글이 적용되는 디자인을 입힌다.
 
 ```{r marcap-visualize-year-theme}
 library(extrafont)
 loadfonts()
 
 marcap_theme <- theme_classic(base_family = "NanumGothic") +
-  # theme(axis.text.y = element_blank()) +
-  # theme(axis.ticks.y = element_blank()) +
-  # theme(axis.line.y = element_blank()) +
+  theme(legend.position = "none") +
+  theme(axis.text.y = element_blank()) +
+  theme(axis.ticks.y = element_blank()) +
+  theme(axis.line.y = element_blank()) +
   theme(legend.background = element_rect(fill = "gainsboro")) +
   theme(plot.background = element_rect(fill = "gainsboro")) +
   theme(panel.background = element_rect(fill = "gainsboro"))
 
-marcap_g <- marcap_df %>% 
-  filter(str_detect(yearmon, "2019")) %>% 
-  ggplot(aes(x=fct_reorder(name, marcap), y=marcap, fill=name)) +
-    geom_col(show.legend = FALSE) +
-    coord_flip() +
-    facet_wrap(~yearmon, scales = "free") +
-    labs(x="", y="") +
-    scale_y_sqrt(limits=c(0,350)) +
+marcap_g <- marcap_g +
     marcap_theme
 
 marcap_g
@@ -215,17 +241,86 @@ marcap_g
 
 ## 애니메이션 {#finance-kr-viz-animation}
 
+부드러운 디자인이 되도록 적절한 프레임수를 결정한다.
+
 ```{r marcap-animation}
 library(gganimate) 
-options(gganimate.nframes = 20)
+options(gganimate.nframes = 30)
 
 marcap_g +
   facet_null() +  
   geom_text(x = 300 , y = -10,  
             family = "Times",  
             aes(label = as.character(yearmon)),  
-            size = 30, col = "grey18") +  
+            size = 10, col = "grey18") +  
   aes(group = name) +  
   gganimate::transition_time(yearmon)
 ```
 
+# 최종 {#last-plot}
+
+최근 10년을 시가총액 질주하는 막대그래프를 작성하면 다음과 같다.
+
+```{r last-plot-marcap, eval=FALSE}
+marcap_full_g <- marcap_df %>% 
+  filter(yearmon >= as.Date("2019-01-01")) %>% 
+  ggplot() +
+    aes(xmin = 0, xmax = marcap) +
+    aes(ymin = rank -.5, ymax = rank + 0.5, y=rank) +
+    facet_wrap(~yearmon, scales = "free") +
+    geom_rect(alpha = .7, aes(fill=name)) +  
+    scale_fill_viridis_d(option = "magma",  
+                         direction = -1) +  
+    scale_x_continuous(  
+      limits = c(-100, 350),  
+      breaks = c(0, 100, 200, 300)) +  
+    geom_text(col = "gray13",  
+              hjust = "right",  
+              aes(label = name),  
+              x = 0, family="NanumGothic") +  
+    scale_y_reverse() +
+    theme(legend.position = "none") +
+    labs(x = '시가총액 (원화 조원)', y ="") +
+    marcap_theme
+
+marcap_full_g
+
+options(gganimate.nframes = 100)
+
+marcap_ani <- marcap_full_g +
+  facet_null() +  
+  geom_text(x = 300 , y = -10,  
+            family = "Times",  
+            aes(label = as.character(yearmon)),  
+            size = 10, col = "grey18") +  
+  aes(group = name) +  
+  gganimate::transition_time(yearmon)
+
+anim_save("fig/marcap.gif", marcap_ani)
+```
+
+![](fig/marcap.gif)
+
+전체 기간에 대해 시가총액 질주하는 막대그래프를 작성하면 다음과 같다. [^slowdown]
+
+[^slowdown]: [Stackoverflow, "Slow down gganimate in R"](https://stackoverflow.com/questions/52899017/slow-down-gganimate-in-r)
+
+```{r full-last-plot-marcap, eval=FALSE}
+
+marcap_time <- marcap_full_g +
+  facet_null() +  
+  geom_text(x = 300 , y = -10,  
+            family = "Times",  
+            aes(label = as.character(yearmon)),  
+            size = 10, col = "grey18") +  
+  aes(group = name) +  
+  gganimate::transition_time(yearmon)
+
+marcap_ani <- animate(marcap_time, 
+        duration = 75, # 12개월 * 25년 * 0.24 초/월 = 75초
+        fps = 30) # 부드러움(smooth))
+
+anim_save("marcap_full.gif", marcap_ani)
+```
+
+![](fig/marcap_full.gif)
