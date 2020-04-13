@@ -1,20 +1,26 @@
 ---
 layout: page
 title: 데이터 과학 -- 금융(Finance)
-subtitle: 금융공학을 위한 R 언어 기초
+subtitle: "금융공학을 위한 R 언어 기초"
+author:
+    name: "[Tidyverse Korea](https://www.facebook.com/groups/tidyverse/)"
+date: "`r Sys.Date()`"
 output:
   html_document: 
     toc: yes
     toc_float: true
     highlight: tango
+    number_section: true
     code_folding: show
-    number_sections: TRUE
+mainfont: NanumGothic
+editor_options: 
+  chunk_output_type: console
 ---
 
 
-```{r, include=FALSE}
-source("tools/chunk-options.R") 
-knitr::opts_chunk$set(echo=TRUE, message=FALSE, warning=FALSE)
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
+                      comment="", digits = 3, tidy = FALSE, prompt = FALSE, fig.align = 'center')
 
 library(tidyverse)
 library(tidyquant)
@@ -58,7 +64,7 @@ $$\mbox{PV} = \frac{\mbox{CF}}{(1+r)^1} + \frac{\mbox{CF}}{(1+r)^2} + \frac{\mbo
 # 현재가치 예제 ----------------------------------------
 ## 갑돌 현금흐름 작성
 cash_df <- data.frame(household =c("갑돌", "갑돌", "갑돌"),
-                      cash_flow =c(1000,2000, 3000),
+                      cash_flow =c(1000L,2000L, 3000L),
                       year = c(1,2,3)) 
 cash_df
 
