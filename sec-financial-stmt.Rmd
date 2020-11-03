@@ -34,6 +34,7 @@ knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
                       comment="", digits = 3, tidy = FALSE, prompt = FALSE, fig.align = 'center')
 
 library(tidyverse)
+library(finreportr)
 ```
 
 # `finreportr` [^blog-finreportr] [^blog-finreportr2] {#finreportr}
@@ -94,9 +95,145 @@ semicon_df
 
 ## 회사정보 {#listed-semiconductor-company-info}
 
-```{r}
+`finreportr` 팩키지 `CompanyInfo()` 함수를 사용해서 회사정보를 가져온다.
 
+```{r finreportr-companyInfo, eval = FALSE}
+library(finreportr)
+
+semicon_fin_df <- map_df(semicon_df$ticker, CompanyInfo) 
+
+semicon_fin_list <- list()
+
+for(i in 1:nrow(semicon_df)) {
+  cat(i, ": \n")
+  if(semicon_df$ticker[i] %in% c("LPTH", "MLNX")) {
+    next
+  } else {
+      semicon_fin_list[[i]] <- CompanyInfo(semicon_df$ticker[i])
+  }
+}
+
+semicon_fin_df <- map_df(semicon_fin_list, rbind)
+
+semicon_fin_df %>% 
+  write_rds("data/semicon_fin_df.rds")
 ```
 
+상장된 반도체 업체 기본정보를 표를 통해 일별한다.
 
+``` {r table-company-info}
+semicon_fin_df <- read_rds("data/semicon_fin_df.rds")
 
+semicon_fin_df %>% 
+  reactable::reactable()
+```
+
+## 시가총액 [^get-market-cap] {#listed-semiconductor-marcap}
+
+[^get-market-cap]: [Stackoverflow, "Financial Analysis in R - hoping to add Market Cap, P/FCF, EV/EBITDA, and Shareholder Yield to dataset"](https://stackoverflow.com/questions/40432212/financial-analysis-in-r-hoping-to-add-market-cap-p-fcf-ev-ebitda-and-shareh)
+
+시가총액(Market Capitalization)을 가져오기가 좀 까다롭게 되어 [Stackoverflow, "Financial Analysis in R - hoping to add Market Cap, P/FCF, EV/EBITDA, and Shareholder Yield to dataset"](https://stackoverflow.com/questions/40432212/financial-analysis-in-r-hoping-to-add-market-cap-p-fcf-ev-ebitda-and-shareh)을 참조하여 시총을 가져온다.
+
+```{r semiconductor-marcap, eval = FALSE}
+library(quantmod)
+library(rvest)
+library(XML)
+
+# start_date <- as.Date("2019-12-01") 
+# end_date   <- as.Date("2019-12-31")
+# getSymbols(c("JPM", "WFC"), src = "yahoo", from = start_date, to = end_date)
+
+get_marcap <- function(ticker) {
+  url <- glue::glue("http://finviz.com/quote.ashx?t={ticker}")
+  webpage <- readLines(url)
+  html <- htmlTreeParse(webpage, useInternalNodes = TRUE, asText = TRUE)
+  tableNodes <- getNodeSet(html, "//table")
+  
+  df <- readHTMLTable(tableNodes[[9]], 
+                header = c("data1", "data2", "data3", "data4", "data5", "data6",
+                           "data7", "data8", "data9", "data10", "data11", "data12")) %>% 
+    select(metric = data1, value = data2) %>% 
+    filter(str_detect(metric, "Cap"))   
+  
+  return(df)
+} 
+
+safe_get_marcap <- safely(get_marcap)
+
+semicon_marcap_list <- map(semicon_df$ticker, ~ safe_get_marcap(.x))
+
+semicon_marcap_list %>% 
+  write_rds("data/semicon_marcap_list.rds")
+```
+
+시가총액 금액을 기계가 처리할 수 있는 형태로 숫자형으로 변형시켜 표형태로 추출한다.
+
+```{r market-cap-top}
+semicon_marcap_list <- 
+  read_rds("data/semicon_marcap_list.rds")
+
+semicon_marcap_rs_list <- map(semicon_marcap_list, "result")
+
+marcap_value <- pluck(semicon_marcap_rs_list, "value") %>% 
+  map_chr(toString)
+
+semicon_df %>% 
+  mutate(marcap = marcap_value) %>% 
+  mutate(unit = str_extract(marcap, ".$"),
+         value = parse_number(marcap)) %>% 
+  mutate(market_cap = ifelse(unit == "B", value * 10^9, value * 10^6)) %>% 
+  arrange(desc(market_cap)) %>% 
+  # top_n(10, wt=market_cap) %>% 
+  reactable::reactable()
+```
+
+## 손익계산서 {#listed-semiconductor-income}
+
+TSMC가 가장 높은 시총을 갖는 것이 확인되어 TSMC 손익계산서를 가져오는 대신 인텔로 대신하여 손익계산서를 가져온다.
+
+```{r market-cap-top-income}
+intel_is <- GetIncome("INTC", year = 2018)
+
+intel_is %>% 
+  filter(startDate == "2014-12-28") %>% 
+  mutate(Amount = as.numeric(Amount)) %>% 
+  mutate(amount_billion = Amount / 10^9) %>% 
+  select(Metric, Units, amount_billion) %>% 
+  reactable::reactable()
+```
+
+## 대차대조표 {#listed-semiconductor-bs}
+
+이번에는 인텔의 대차대조표를 가져와보자.
+
+```{r market-cap-top-bs}
+intel_bs <- GetBalanceSheet("INTC", year = 2018)
+
+intel_bs %>% 
+  filter(endDate == "2016-12-31") %>% 
+  mutate(Amount = as.numeric(Amount)) %>% 
+  mutate(amount_billion = Amount / 10^9) %>% 
+  select(Metric, Units, amount_billion) %>% 
+  reactable::reactable()
+```
+
+## 현금흐름표 {#listed-semiconductor-cf}
+
+인텔의 현금흐름표를 가져와보자.
+
+```{r market-cap-top-cf}
+intel_cf <- GetCashFlow("INTC", year = 2018)
+
+intel_cf %>% 
+  filter(endDate == "2016-12-31") %>% 
+  mutate(Amount = as.numeric(Amount)) %>% 
+  mutate(amount_billion = Amount / 10^9) %>% 
+  select(Metric, Units, amount_billion) %>% 
+  reactable::reactable()
+```
+
+## 사업보고서 {#listed-semiconductor-annual-report}
+
+```{r market-cap-top-annual}
+AnnualReports("INTC")
+```
