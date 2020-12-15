@@ -57,8 +57,8 @@ title: 금융(Finance)
     - [금융공학을 위한 R 언어 기초](stat-fe-r.html)
     - [블록체인(Block Chain)](finance-blockchain.html)
     - [실업률 예측 - tidyquant](ts-unemployment-tidyquant.html)    
-- **[자본주의와 나](finance-capitalism.html)**
 - **[주식투자](finance-stock.html)**
+    - [자본주의와 나](finance-capitalism.html)
     - [파이썬 프로그래밍 - Sublime Text3](financial-python.html)
     - [상장사 목록 &rarr; 주가](financial-listing-to-stock-krx.html)
         - [(美)상장사 목록 &rarr; 주가](financial-listing-to-stock.html)
@@ -68,6 +68,9 @@ title: 금융(Finance)
 - 재무제표
     - [재무제표(Financial Statement)](financial-report.html)
     - [SEC - 회사정보, 사업보고서, IS/BS/CF](sec-financial-stmt.html)
+    - [재무제표 R 팩키지](financial-stmt-pkg.html)
+- [코로나 19 예측](finance-covid19.html)
+
 
 ### [xwMOOC 오픈 교재](https://statkclee.github.io/xwMOOC/)
 
