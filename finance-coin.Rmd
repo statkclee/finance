@@ -65,3 +65,9 @@ all_coins %>% names
 ```
 
 
+# 5대 거래소 {#five-exchange}
+
+```{r five-exchange, error = TRUE}
+get_exchange_meta(slug = c("binance", "cryptsy"))
+```
+
