@@ -69,7 +69,7 @@ title: 금융(Finance)
     - [재무제표(Financial Statement)](financial-report.html)
     - [SEC - 회사정보, 사업보고서, IS/BS/CF](sec-financial-stmt.html)
     - [재무제표 R 팩키지](financial-stmt-pkg.html)
-- [코로나 19 예측](finance-covid19.html)
+- [가상화폐](finance-coin.html)
 
 
 ### [xwMOOC 오픈 교재](https://statkclee.github.io/xwMOOC/)
