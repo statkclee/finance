@@ -70,8 +70,10 @@ title: 금융(Finance)
     - [SEC - 회사정보, 사업보고서, IS/BS/CF](sec-financial-stmt.html)
     - [재무제표 R 팩키지](financial-stmt-pkg.html)
 - [가상화폐](finance-coin.html)
-
-
+- **회계**
+    - [분개(Jounral Entry, journalizing)](accounting-je.html)
+    
+    
 ### [xwMOOC 오픈 교재](https://statkclee.github.io/xwMOOC/)
 
 - **컴퓨팅 사고력(Computational Thinking)**

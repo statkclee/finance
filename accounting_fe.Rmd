@@ -1,0 +1,212 @@
+---
+layout: page
+title: "데이터 과학 -- 금융(Finance)"
+subtitle: "분개(journal entry, journalizing)"
+author:
+  - name: "이광춘"
+    affiliation: "[Tidyverse Korea](https://www.facebook.com/groups/tidyverse/)"
+date: "`r Sys.Date()`"
+tags: ["데이터 과학", "Data Science", "데이터 사이언스", "오픈통계", "데이터팩키지", "분개", "Journal Entry"]
+output:
+  html_document: 
+    include:
+      after_body: footer.html
+      before_body: header.html
+    theme: default
+    toc: yes
+    toc_depth: 2
+    toc_float: true
+    highlight: tango
+    code_folding: show
+    number_section: true
+    self_contained: true
+urlcolor: blue
+linkcolor: blue
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
+                      comment="", digits = 3, tidy = FALSE, prompt = FALSE, fig.align = 'center')
+```
+
+
+# 데이터셋  [^je] {#journal-entry-dataset}
+
+[R | Journal Entry Test | Fast track](https://joy-accounting.netlify.app/2021-07-21-r-journal-entry-test-fast-track/) 블로그에 게시된 형 회계사님 데이터를 참고한다.
+
+[^je]: [R | Journal Entry Test | Fast track](https://joy-accounting.netlify.app/2021-07-21-r-journal-entry-test-fast-track/)
+
+
+```{r import-dataset}
+library(tidyverse)
+library(readxl)
+
+je_tbl <- read_csv("data/je/je.csv", locale=locale('ko',encoding='euc-kr'))
+
+```
+
+# Data Integrity Test {#data-integrity-test}
+
+
+```{r data-integrity-test}
+library(skimr)
+
+skim(je_tbl)
+```
+
+
+# 전표번호 별 차대변 일치검증 {#차대변-일치검증}
+
+```{r check-bs}
+A02_tbl <- je_tbl %>% 
+       select(JENO, DR, CR) %>% 
+       mutate_all(~replace(., is.na(.), 0)) %>% 
+       group_by(JENO) %>% 
+       summarise(DR_sum=sum(DR),
+                 CR_sum=sum(CR)) %>%  
+       mutate(Differ= DR_sum - CR_sum)
+
+A02_tbl %>% 
+  filter(Differ > 0)  %>% 
+  nrow()
+
+```
+
+# 시산표 Reconciliation 검증 {#trial-balance}
+
+시산표 Reconciliation 검증 (Trial Balance Rollforward Test) 작업을 수행하자.
+
+## 당기 시산표 {#current-trial}
+
+```{r current-trial-balance}
+cytb_raw <- read_excel("data/je/CYTB.xlsx")
+
+cytb_raw %>% 
+  skim()
+
+cytb_tbl <- cytb_raw %>% 
+  filter(!is.na(ACCTCD))
+```
+
+## 전기 시산표 {#previous-trial}
+
+
+```{r previous-trial-balance}
+pytb_raw <- read_excel("data/je/PYTB.xlsx")
+
+pytb_raw %>% 
+  skim()
+
+pytb_tbl <- pytb_raw %>% 
+  filter(!is.na(ACCTCD))
+
+
+```
+
+
+
+
+## 당기전기 데이터 정제 {#current-previous-cleansing}
+
+
+```{r clean-current-previous}
+cytb_fp <- cytb_tbl %>% 
+  slice(1:99)
+
+cytb_pl <- cytb_tbl %>% 
+  slice(100:n())
+
+pytb_fp <- pytb_tbl %>% 
+  slice(1:103)
+
+```
+
+```{r clean-current-previous-merge}
+CYTB_FP <- full_join(cytb_fp, cytb_pl, by='ACCTCD') %>% 
+       mutate_all(~replace(., is.na(.), 0)) %>% 
+       mutate(balance = (DRSUM.x - CRSUM.x) -(DRSUM.y - CRSUM.y)) %>% 
+       select(ACCTCD, balance)
+
+CYTB_PL <- cytb_pl %>% 
+       mutate(balance = (DRSUM - CRSUM)) %>% 
+       select(ACCTCD, balance)
+
+CYTB_balance <- bind_rows(CYTB_FP, CYTB_PL)
+
+```
+
+```{r check-something}
+
+
+A03 <- je_tbl %>% 
+  select(ACCTCD, DR, CR) %>% 
+  mutate_all(~replace(., is.na(.), 0)) %>% 
+  group_by(ACCTCD) %>% 
+  summarise(DR_sum=sum(DR),
+             CR_sum=sum(CR)) %>% 
+  ungroup() %>% 
+  mutate(ACCTCD = as.character(ACCTCD))
+     
+A03 <- left_join(A03, CYTB_balance, by = 'ACCTCD')
+
+skim(A03)
+
+# table(is.na(A03))
+# sapply(A03, function(x) sum(is.na(x)))
+    
+A03 <- A03 %>% 
+  mutate_all(~replace(.,is.na(.), 0)) %>% 
+  mutate(Differ = (DR_sum - CR_sum - balance))
+
+A03 %>% 
+  filter(Differ > 0) %>% 
+  nrow()
+
+# A03[A03$Differ > 0, ] 
+```
+
+## B01 매출의 상대계정분석 {#상대계정분석}
+
+
+```{r analysis-balance}
+Corr_Acc <- '40401'
+
+B09_main <- je_tbl  %>% 
+  filter(ACCTCD == Corr_Acc) %>% 
+  select(JENO, ACCTCD)
+
+B09_Corr <- je_tbl %>% 
+  select(JENO, ACCTCD)
+
+B09 <- semi_join(B09_Corr, B09_main, by = 'JENO')
+
+B09 <- B09  %>% 
+  filter(!is.na(ACCTCD)) %>% 
+  count(ACCTCD)
+
+B09
+```
+
+```{r analysis-tbl}
+B09_name <- je_tbl  %>% 
+  select(ACCTCD, ACCT_NM) %>% 
+  distinct()    
+
+B09 <- left_join(B09, B09_name, by = 'ACCTCD') 
+
+B09
+```
+
+
+# 작업 결과 저장 {#save-file}
+
+```{r save-files}
+A02_tbl %>% write_csv("data/je/A02_tbl.csv")
+A03 %>% write_csv("data/je/A03.csv")
+B09 %>% write_csv("data/je/B09.csv")
+```
+
