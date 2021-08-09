@@ -41,11 +41,17 @@ knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
 [^je]: [R | Journal Entry Test | Fast track](https://joy-accounting.netlify.app/2021-07-21-r-journal-entry-test-fast-track/)
 
 
+
+
 ```{r import-dataset}
 library(tidyverse)
 library(readxl)
 
-je_tbl <- read_csv("data/je/je.csv", locale=locale('ko',encoding='euc-kr'))
+je_raw <- read_csv("data/je/je.csv", locale=locale('ko',encoding='euc-kr'))
+
+je_tbl <- je_raw %>% 
+  mutate(JEDATE = lubridate::ymd(JEDATE)) %>% 
+  mutate(요일 = lubridate::wday(JEDATE, label = TRUE)) 
 
 ```
 
@@ -66,15 +72,48 @@ A02_tbl <- je_tbl %>%
        select(JENO, DR, CR) %>% 
        mutate_all(~replace(., is.na(.), 0)) %>% 
        group_by(JENO) %>% 
-       summarise(DR_sum=sum(DR),
-                 CR_sum=sum(CR)) %>%  
+       summarise(DR_sum = sum(DR),
+                 CR_sum = sum(CR)) %>%  
        mutate(Differ= DR_sum - CR_sum)
 
 A02_tbl %>% 
   filter(Differ > 0)  %>% 
   nrow()
-
 ```
+
+# 대차대조표와 손익계산서 분리 {.tabset}
+
+`계정과목` "<< 손          익 >>"을 기준으로 재무상태표와 손익계산서를 분리한다.
+
+```{r bs-pl}
+cytb_raw <- read_excel("data/je/CYTB.xlsx")
+
+cytb_tbl <- cytb_raw %>% 
+  mutate(계정구분 = ifelse(str_detect(계정과목, pattern =  "<< 손          익 >>"), "손익계산서", NA)) %>% 
+  fill(계정구분, .direction = "down") %>% 
+  mutate(계정구분 = ifelse(is.na(계정구분), "대차대조표", 계정구분))
+
+cytb_bs_tbl <-  cytb_tbl %>% 
+  filter(계정구분 == "대차대조표")
+
+cytb_pl_tbl <-  cytb_tbl %>% 
+  filter(계정구분 == "손익계산서")
+```
+
+## 대차대조표  
+
+```{r bs-data}
+cytb_bs_tbl %>% 
+  reactable::reactable(filterable = TRUE, minRows = 10)
+```
+
+## 손익계산서  
+
+```{r is-data}
+cytb_pl_tbl %>% 
+  reactable::reactable(filterable = TRUE, minRows = 10)
+```
+
 
 # 시산표 Reconciliation 검증 {#trial-balance}
 
@@ -103,8 +142,6 @@ pytb_raw %>%
 
 pytb_tbl <- pytb_raw %>% 
   filter(!is.na(ACCTCD))
-
-
 ```
 
 
@@ -149,8 +186,9 @@ A03 <- je_tbl %>%
   summarise(DR_sum=sum(DR),
              CR_sum=sum(CR)) %>% 
   ungroup() %>% 
-  mutate(ACCTCD = as.character(ACCTCD))
-     
+  # Join 할 때 자료형 오류 때문에 자료형 맞춰주기
+  mutate(ACCTCD = as.character(ACCTCD)) 
+
 A03 <- left_join(A03, CYTB_balance, by = 'ACCTCD')
 
 skim(A03)
