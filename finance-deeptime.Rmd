@@ -1,0 +1,159 @@
+---
+layout: page
+title: "데이터 과학 -- 금융(Finance)"
+subtitle: "연대기 시각화(`deeptime`)"
+author:
+- name: "이광춘"
+  affiliation: "[Tidyverse Korea](https://www.facebook.com/groups/tidyverse/)"
+date: "`r Sys.Date()`"
+tags: ["데이터 과학", "Data Science", "데이터 사이언스", "연대기", "deeptime"]
+output:
+  html_document: 
+    include:
+      after_body: footer.html
+      before_body: header.html
+    theme: yeti
+    toc: yes
+    toc_depth: 2
+    toc_float: true
+    highlight: tango
+    code_folding: show
+    number_section: true
+    self_contained: true
+bibliography: bibliography-fin.bib
+csl: biomed-central.csl
+urlcolor: blue
+linkcolor: blue
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
+                      comment="", digits = 3, tidy = FALSE, prompt = FALSE, fig.align = 'center')
+
+```
+
+
+# 연대기 데이터 {#deeptime-data}
+
+[`deeptime`](https://github.com/willgearty/deeptime) 팩키지에 나온 데이터를 활용하여 시각화해보자.
+
+```{r deeptime-data}
+library(deeptime)
+library(tidyverse)
+library(divDyn)
+
+data(corals)
+
+corals_tbl <- corals %>% 
+  as_tibble()
+
+coral_div <- corals_tbl %>% 
+  filter(stage != "") %>%
+  group_by(stage) %>%
+  summarise(n = n()) %>%
+  mutate(stage_age = (stages$max_age[match(stage, stages$name)] + stages$min_age[match(stage, stages$name)])/2)
+
+reactable::reactable(coral_div)
+```
+
+상기 데이터를 시각화하면 다음과 같다.
+
+```{r deeptime-viz}
+
+ggplot(coral_div) +
+  geom_line(aes(x = stage_age, y = n)) +
+  scale_x_reverse("Age (Ma)") +
+  ylab("Coral Genera") +
+  coord_geo( xlim = c(250, 0), ylim = c(0, 1700)) +
+  theme_classic()
+```
+
+
+`coord_geo()` 함수가 핵심적인 역할을 수행하고 해당 데이터는 [Macrostrat - A platform for geological data exploration, integration, and analysis](https://macrostrat.org/api/defs/timescales?all) 에 정의되어 있다. 별도 데이터를 연대기를 갖는 데이터를 원하는 경우 `data(periods)` 함수를 사용해서 이에 맞춰 표현이 가능하다.
+
+```{r deeptime-another}
+library(gsloid)
+
+lisiecki2005 %>% 
+  as_tibble() %>% 
+  ggplot(aes(x = d18O, y = Time/1000)) +
+    geom_line(orientation = "y") +
+    scale_y_reverse("Time (Ma)") +
+    scale_x_reverse() +
+    coord_geo(dat = "Geomagnetic Polarity Chron", xlim = c(6,2), ylim = c(6,0), pos = "left", rot = 90) +
+    theme_classic()
+```
+
+연대기를 정의하는 기본 데이터는 다음 구조를 갖는다.
+
+
+```{r peridos-dataset}
+data(periods)
+periods
+```
+
+
+# 국내 데이터 {#deeptime-test-data}
+
+```{r deeptime-local-dataset}
+library(rvest)
+
+Sys.setlocale("LC_ALL", locale = "C")
+
+wiki_raw <- read_html(x = "https://ko.wikipedia.org/wiki/%EB%8C%80%ED%95%9C%EB%AF%BC%EA%B5%AD%EC%9D%98_%EC%9D%B8%EA%B5%AC", encoding = 'utf-8') %>% 
+  html_element(xpath = '//*[@id="mw-content-text"]/div[1]/table[6]') %>% 
+  html_table(fill = TRUE)
+
+Sys.setlocale("LC_ALL", locale = "Korean")
+
+wiki_tbl <- wiki_raw %>% 
+  janitor::clean_names(ascii = FALSE) %>% 
+  select(연도 = 연도_년, 인구 = 추계인구_명) %>% 
+  mutate(인구 = parse_number(인구)) %>% 
+  mutate(name = case_when( 연도 <= 1953 ~ "Korean War",
+                          연도 > 1953 & 연도 <= 1963 ~ "Baby Boomer",
+                          연도 > 1963 ~ "X Gen"))
+  
+
+wiki_tbl %>% 
+  ggplot(aes(x = 연도, y = 인구)) +
+    geom_line() +
+    scale_y_continuous(labels = scales::comma) +
+    labs(x=NULL, y=NULL, 
+         title = "대한민국 인구") +
+    theme_bw(base_family = "NanumGothic")
+```
+
+# 연대기 데이터 {#deeptime-test-data-chron}
+
+[시대정신 - 유권자](https://statkclee.github.io/basics/02-voters.html)에 나타난 정보를 시각화해보자.
+
+```{r chron-dataset}
+war_gen <- c("Korean War", 1900, 1953, "War", "#F9F97F")
+babyboom_gen <- c("Baby Boomer", 1954, 1963, "Baby", "#FFE619")
+x_gen  <- c("X Gen", 1964, 1980, "X-Gen", "#FD9A52")
+
+gen_list <- list(war_gen, babyboom_gen, x_gen)
+
+gen_tbl <- tibble(name    = map_chr(gen_list, 1),
+                  min_age = map_chr(gen_list, 3) %>% as.integer,
+                  max_age = map_chr(gen_list, 2) %>% as.integer,
+                  abbr    = map_chr(gen_list, 4),
+                  color   = map_chr(gen_list, 5))
+
+periods <- gen_tbl
+
+wiki_tbl %>% 
+  ggplot(aes(x = 연도, y = 인구)) +
+    geom_line() +
+    scale_y_continuous(labels = scales::comma) +
+    labs(x=NULL, y=NULL, 
+         title = "대한민국 인구") +
+    theme_bw(base_family = "NanumGothic") +
+    coord_geo(dat = "periods", xlim = c(0, 2020))
+```
+
+
+

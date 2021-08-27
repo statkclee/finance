@@ -70,6 +70,7 @@ title: 금융(Finance)
     - [SEC - 회사정보, 사업보고서, IS/BS/CF](sec-financial-stmt.html)
     - [재무제표 R 팩키지](financial-stmt-pkg.html)
 - [가상화폐](finance-coin.html)
+- [연대기 시각화(`deeptime`)](finance-deeptime.html)
 - **회계**
     - [분개(Jounral Entry, journalizing)](accounting-je.html)
     
