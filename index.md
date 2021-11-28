@@ -37,6 +37,7 @@ title: 금융(Finance)
     - [시계열 데이터 자료구조 - `tsibble`, `zoo/xts`, `lubridate` ](finance-ts-ds.html)
         - [시계열 데이터 자료구조 - `zoo/xts`](finance-ts-xts.html)
     - [시계열 자료구조 - 파이썬](finance-data-structure-python.html)
+    - [DART API 공시정보](finance-dart-api.html)
 - **시계열 데이터 살펴보기**
     - [탐색적 시계열 데이터 분석](stat-time-series-eda.html)
     - [시계열 예측 성능기준(benchmark)](stat-time-series-benchmark.html)

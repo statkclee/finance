@@ -51,6 +51,7 @@ library(finreportr)
 
 
 ```{r xbrlus-api, eval = FALSE}
+# devtools::install_github("bergant/xbrlus")
 library(xbrlus) 
 
 companies <- xbrlCIKLookup(c(
